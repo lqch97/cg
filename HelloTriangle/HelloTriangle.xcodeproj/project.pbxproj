@@ -8,6 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		8233C35B27E9B4C5004E6FC1 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8233C35A27E9B4C5004E6FC1 /* main.cpp */; };
+		8233C36927E9BB97004E6FC1 /* textfile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8233C36427E9BB97004E6FC1 /* textfile.cpp */; };
+		8233C36A27E9BB97004E6FC1 /* glad.c in Sources */ = {isa = PBXBuildFile; fileRef = 8233C36827E9BB97004E6FC1 /* glad.c */; };
+		8233C36E27EA139A004E6FC1 /* libglfw.3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 8233C36D27EA139A004E6FC1 /* libglfw.3.dylib */; };
+		8233C36F27EA139A004E6FC1 /* libglfw.3.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = 8233C36D27EA139A004E6FC1 /* libglfw.3.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -20,11 +24,29 @@
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
+		8233C37027EA139A004E6FC1 /* Embed Libraries */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				8233C36F27EA139A004E6FC1 /* libglfw.3.dylib in Embed Libraries */,
+			);
+			name = "Embed Libraries";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		8233C35727E9B4C5004E6FC1 /* HelloTriangle */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = HelloTriangle; sourceTree = BUILT_PRODUCTS_DIR; };
 		8233C35A27E9B4C5004E6FC1 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		8233C36427E9BB97004E6FC1 /* textfile.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = textfile.cpp; sourceTree = "<group>"; };
+		8233C36527E9BB97004E6FC1 /* textfile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = textfile.h; sourceTree = "<group>"; };
+		8233C36627E9BB97004E6FC1 /* shader.vs */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.glsl; path = shader.vs; sourceTree = "<group>"; };
+		8233C36727E9BB97004E6FC1 /* shader.fs */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.glsl; path = shader.fs; sourceTree = "<group>"; };
+		8233C36827E9BB97004E6FC1 /* glad.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = glad.c; sourceTree = "<group>"; };
+		8233C36B27E9BC49004E6FC1 /* include */ = {isa = PBXFileReference; lastKnownFileType = folder; path = include; sourceTree = "<group>"; };
+		8233C36D27EA139A004E6FC1 /* libglfw.3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libglfw.3.dylib; path = lib/libglfw.3.dylib; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -32,6 +54,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8233C36E27EA139A004E6FC1 /* libglfw.3.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -41,8 +64,10 @@
 		8233C34E27E9B4C5004E6FC1 = {
 			isa = PBXGroup;
 			children = (
+				8233C36B27E9BC49004E6FC1 /* include */,
 				8233C35927E9B4C5004E6FC1 /* HelloTriangle */,
 				8233C35827E9B4C5004E6FC1 /* Products */,
+				8233C36C27EA139A004E6FC1 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -57,9 +82,22 @@
 		8233C35927E9B4C5004E6FC1 /* HelloTriangle */ = {
 			isa = PBXGroup;
 			children = (
+				8233C36827E9BB97004E6FC1 /* glad.c */,
+				8233C36727E9BB97004E6FC1 /* shader.fs */,
+				8233C36627E9BB97004E6FC1 /* shader.vs */,
+				8233C36427E9BB97004E6FC1 /* textfile.cpp */,
+				8233C36527E9BB97004E6FC1 /* textfile.h */,
 				8233C35A27E9B4C5004E6FC1 /* main.cpp */,
 			);
 			path = HelloTriangle;
+			sourceTree = "<group>";
+		};
+		8233C36C27EA139A004E6FC1 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				8233C36D27EA139A004E6FC1 /* libglfw.3.dylib */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -72,6 +110,7 @@
 				8233C35327E9B4C5004E6FC1 /* Sources */,
 				8233C35427E9B4C5004E6FC1 /* Frameworks */,
 				8233C35527E9B4C5004E6FC1 /* CopyFiles */,
+				8233C37027EA139A004E6FC1 /* Embed Libraries */,
 			);
 			buildRules = (
 			);
@@ -119,7 +158,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8233C36927E9BB97004E6FC1 /* textfile.cpp in Sources */,
 				8233C35B27E9B4C5004E6FC1 /* main.cpp in Sources */,
+				8233C36A27E9BB97004E6FC1 /* glad.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -239,6 +280,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				HEADER_SEARCH_PATHS = "${PROJECT_DIR}/include";
+				LIBRARY_SEARCH_PATHS = (
+					"${PROJECT_DIR}/lib",
+					"$(PROJECT_DIR)/lib",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -247,6 +293,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				HEADER_SEARCH_PATHS = "${PROJECT_DIR}/include";
+				LIBRARY_SEARCH_PATHS = (
+					"${PROJECT_DIR}/lib",
+					"$(PROJECT_DIR)/lib",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
