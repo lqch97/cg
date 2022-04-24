@@ -204,7 +204,21 @@ Matrix4 rotate(Vector3 vec)
 // [TODO] compute viewing matrix accroding to the setting of main_camera
 void setViewingMatrix()
 {
-	// view_matrix[...] = ...
+    Vector3 p1_p2 = main_camera.center - main_camera.position,
+            p1_p3 = main_camera.up_vector,
+            new_z = -(p1_p2).normalize(),
+            new_x = p1_p2.cross(p1_p3).normalize(),
+            new_y = new_z.cross(new_x);
+
+    Matrix4 T = translate(-main_camera.position);
+    Matrix4 R = Matrix4(
+        new_x[0], new_x[1], new_x[2], 0,
+        new_y[0], new_y[1], new_y[2], 0,
+        new_z[0], new_z[1], new_z[2], 0,
+        0, 0, 0, 1
+    );
+
+    view_matrix = R * T;
 }
 
 // [TODO] compute orthogonal projection matrix
@@ -219,13 +233,14 @@ void setPerspective()
 {
 	cur_proj_mode = Perspective;
 	// project_matrix [...] = ...
-//            float f = 1 / (tan(proj.fovy / 2 * PI / 180.0));
-//            project_matrix = Matrix4(
-//                    f / proj.aspect, 0, 0, 0,
-//                    0, f, 0, 0,
-//                    0, 0, (proj.farClip + proj.nearClip) / (proj.nearClip - proj.farClip), (2 * proj.farClip * proj.nearClip) / (proj.nearClip - proj.farClip),
-//                    0, 0, -1, 0
-//            );
+        
+            float f = 1 / (tan(proj.fovy / 2 * PI / 180.0));
+            project_matrix = Matrix4(
+                    f / proj.aspect, 0, 0, 0,
+                    0, f, 0, 0,
+                    0, 0, (proj.farClip + proj.nearClip) / (proj.nearClip - proj.farClip), (2 * proj.farClip * proj.nearClip) / (proj.nearClip - proj.farClip),
+                    0, 0, -1, 0
+            );
 }
 
 
@@ -275,7 +290,8 @@ void RenderScene(void) {
 	GLfloat mvp[16];
 
 	// [TODO] multiply all the matrix
-    MVP = T * R * S;
+    MVP = project_matrix * view_matrix * T * R * S;
+//    MVP = T * R * S;
 	// [TODO] row-major ---> column-major
 
     mvp[0] = MVP[0];  mvp[4] = MVP[1];   mvp[8] = MVP[2];    mvp[12] = MVP[3];
@@ -407,7 +423,7 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
             models[cur_idx].rotation.y += PI * delta_x * rotation_factor;
             break;
                     
-        case ViewEye:
+        case ViewEye: // TODO set factor
             main_camera.position.x -= delta_x * 0.002;
             main_camera.position.y -= delta_y * 0.002;
             setViewingMatrix();
