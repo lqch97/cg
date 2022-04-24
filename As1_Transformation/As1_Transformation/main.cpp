@@ -23,6 +23,7 @@ using namespace std;
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
 
+const int PI = 3.14159265359;
 bool mouse_pressed = false;
 int starting_press_x = -1;
 int starting_press_y = -1;
@@ -218,6 +219,13 @@ void setPerspective()
 {
 	cur_proj_mode = Perspective;
 	// project_matrix [...] = ...
+//            float f = 1 / (tan(proj.fovy / 2 * PI / 180.0));
+//            project_matrix = Matrix4(
+//                    f / proj.aspect, 0, 0, 0,
+//                    0, f, 0, 0,
+//                    0, 0, (proj.farClip + proj.nearClip) / (proj.nearClip - proj.farClip), (2 * proj.farClip * proj.nearClip) / (proj.nearClip - proj.farClip),
+//                    0, 0, -1, 0
+//            );
 }
 
 
@@ -286,25 +294,65 @@ void RenderScene(void) {
 
 void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
+    // [TODO] Call back function for keyboard
+    if( !(action == GLFW_PRESS) ) return;
+    
     static bool isWireframe = false;
     unsigned int num_models = (unsigned int) models.size();
-    // [TODO] Call back function for keyboard
-    if (action == GLFW_PRESS) {
-        switch (key) {
-            case GLFW_KEY_ESCAPE:
-                exit(0);
-            case GLFW_KEY_W:
-                isWireframe ? glPolygonMode(GL_FRONT_AND_BACK, GL_LINE) : glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-                isWireframe = !isWireframe;
-                break;
-            case GLFW_KEY_X:
-                cur_idx = (cur_idx + 1) % num_models;
-                break;
-            case GLFW_KEY_Z:
-                cur_idx = (cur_idx + num_models - 1) % num_models;
-        }
-        
+    
+    switch (key) {
+        case GLFW_KEY_ESCAPE:
+            exit(0);
+                
+        case GLFW_KEY_W:
+            isWireframe = !isWireframe;
+            isWireframe ? glPolygonMode(GL_FRONT_AND_BACK, GL_LINE) : glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            break;
+                
+        case GLFW_KEY_Z:
+            cur_idx = (cur_idx + num_models - 1) % num_models;
+            break;
+                
+        case GLFW_KEY_X:
+            cur_idx = (cur_idx + 1) % num_models;
+            break;
+                                                    
+        case GLFW_KEY_O:
+            setOrthogonal();
+            break;
+                                                                     
+        case GLFW_KEY_P:
+            setPerspective();
+            break;
+                                                                                    
+        case GLFW_KEY_T:
+            cur_trans_mode = GeoTranslation;
+            break;
+                                                                                
+        case GLFW_KEY_S:
+            cur_trans_mode = GeoScaling;
+            break;
+                                                                                 
+        case GLFW_KEY_R:
+            cur_trans_mode = GeoRotation;
+            break;
+                                                                             
+        case GLFW_KEY_E:
+            cur_trans_mode = ViewEye;
+            break;
+                                                                                
+        case GLFW_KEY_C:
+            cur_trans_mode = ViewCenter;
+            break;
+                                                                            
+        case GLFW_KEY_U:
+            cur_trans_mode = ViewUp;
+            break;
+                                                                                
+        case GLFW_KEY_I:
+            cout << "Translation matrix is \n"; // TODO output matrix here
     }
+
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
@@ -315,12 +363,71 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
 	// [TODO] mouse press callback function
-		
+    if (button == GLFW_MOUSE_BUTTON_LEFT) {
+        if (action == GLFW_PRESS) mouse_pressed = true;
+        if (action == GLFW_RELEASE) {
+            mouse_pressed = false;
+            starting_press_x = -1;
+            starting_press_y = -1;
+        }
+    }
 }
 
 static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
 {
 	// [TODO] cursor position callback function
+    if(!mouse_pressed) return;
+    
+    if(starting_press_x == -1 || starting_press_y == -1) {
+        starting_press_x = xpos;
+        starting_press_y = ypos;
+        return;
+    }
+    
+    int delta_x = xpos - starting_press_x;
+    int delta_y = ypos - starting_press_y;
+    
+    const float translation_factor = 0.001;
+    const float scaling_factor = 0.001;
+    const float rotation_factor = 0.001;
+                                
+    switch (cur_trans_mode) {
+        case GeoTranslation: // TODO plus or minus?
+            models[cur_idx].position.x += delta_x * translation_factor;
+            models[cur_idx].position.y -= delta_y * translation_factor;
+            break;
+                    
+        case GeoScaling: // TODO plus or minus?
+            models[cur_idx].scale.x -= delta_x * scaling_factor;
+            models[cur_idx].scale.y -= delta_y * scaling_factor;
+            break;
+                    
+        case GeoRotation: // TODO plus or minus?
+            models[cur_idx].rotation.x += PI * delta_y * rotation_factor;
+            models[cur_idx].rotation.y += PI * delta_x * rotation_factor;
+            break;
+                    
+        case ViewEye:
+            main_camera.position.x -= delta_x * 0.002;
+            main_camera.position.y -= delta_y * 0.002;
+            setViewingMatrix();
+            break;
+                    
+        case ViewCenter:
+            main_camera.center.x -= delta_x * 0.002;
+            main_camera.center.y += delta_y * 0.002;
+            setViewingMatrix();
+            break;
+                    
+        case ViewUp:
+            main_camera.up_vector.x -= delta_x * 0.02;
+            main_camera.up_vector.y -= delta_y * 0.02;
+            setViewingMatrix();
+            break;
+    }
+    
+    starting_press_x = xpos;
+    starting_press_y = ypos;
 }
 
 void setShaders()
