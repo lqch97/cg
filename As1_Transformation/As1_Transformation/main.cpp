@@ -120,12 +120,13 @@ static GLvoid Cross(GLfloat u[3], GLfloat v[3], GLfloat n[3])
 Matrix4 translate(Vector3 vec)
 {
 	Matrix4 mat;
-
-	/*
-	mat = Matrix4(
-		...
-	);
-	*/
+    
+    mat = Matrix4(
+        1, 0, 0, vec.x,
+        0, 1, 0, vec.y,
+        0, 0, 1, vec.z,
+        0, 0, 0, 1
+    );
 
 	return mat;
 }
@@ -135,11 +136,12 @@ Matrix4 scaling(Vector3 vec)
 {
 	Matrix4 mat;
 
-	/*
 	mat = Matrix4(
-		...
+        vec.x, 0, 0, 0,
+        0, vec.y, 0, 0,
+        0, 0, vec.z, 0,
+        0, 0, 0, 1
 	);
-	*/
 
 	return mat;
 }
@@ -150,11 +152,13 @@ Matrix4 rotateX(GLfloat val)
 {
 	Matrix4 mat;
 
-	/*
+    // correct?
 	mat = Matrix4(
-		...
+		1, 0, 0, 0,
+        0, cos(val), sin(val), 0,
+        0, -sin(val), cos(val), 0,
+        0, 0, 0, 1
 	);
-	*/
 
 	return mat;
 }
@@ -164,11 +168,13 @@ Matrix4 rotateY(GLfloat val)
 {
 	Matrix4 mat;
 
-	/*
+    // correct?
 	mat = Matrix4(
-		...
+		cos(val), 0, -sin(val), 0,
+        0, 1, 0, 0,
+        sin(val), 0, cos(val), 0,
+        0, 0, 0, 1
 	);
-	*/
 
 	return mat;
 }
@@ -177,12 +183,14 @@ Matrix4 rotateY(GLfloat val)
 Matrix4 rotateZ(GLfloat val)
 {
 	Matrix4 mat;
-
-	/*
+    
+    // correct ?
 	mat = Matrix4(
-		...
+		cos(val), -sin(val), 0, 0,
+        sin(val), cos(val), 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
 	);
-	*/
 
 	return mat;
 }
@@ -250,17 +258,22 @@ void RenderScene(void) {
 
 	Matrix4 T, R, S;
 	// [TODO] update translation, rotation and scaling
+    model cur_model = models[cur_idx];
+    T = translate(cur_model.position);
+    R = rotate(cur_model.rotation);
+    S = scaling(cur_model.scale);
 
 	Matrix4 MVP;
 	GLfloat mvp[16];
 
 	// [TODO] multiply all the matrix
+    MVP = T * R * S;
 	// [TODO] row-major ---> column-major
 
-	mvp[0] = 1;  mvp[4] = 0;   mvp[8] = 0;    mvp[12] = 0;
-	mvp[1] = 0;  mvp[5] = 1;   mvp[9] = 0;    mvp[13] = 0;
-	mvp[2] = 0;  mvp[6] = 0;   mvp[10] = 1;   mvp[14] = 0;
-	mvp[3] = 0; mvp[7] = 0;  mvp[11] = 0;   mvp[15] = 1;
+    mvp[0] = MVP[0];  mvp[4] = MVP[1];   mvp[8] = MVP[2];    mvp[12] = MVP[3];
+    mvp[1] = MVP[4];  mvp[5] = MVP[5];   mvp[9] = MVP[6];    mvp[13] = MVP[7];
+    mvp[2] = MVP[8];  mvp[6] = MVP[9];   mvp[10] = MVP[10];   mvp[14] = MVP[11];
+    mvp[3] = MVP[12]; mvp[7] = MVP[13];  mvp[11] = MVP[14];   mvp[15] = MVP[15];
 
 	// use uniform to send mvp to vertex shader
 	glUniformMatrix4fv(iLocMVP, 1, GL_FALSE, mvp);
@@ -273,7 +286,25 @@ void RenderScene(void) {
 
 void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-	// [TODO] Call back function for keyboard
+    static bool isWireframe = false;
+    unsigned int num_models = (unsigned int) models.size();
+    // [TODO] Call back function for keyboard
+    if (action == GLFW_PRESS) {
+        switch (key) {
+            case GLFW_KEY_ESCAPE:
+                exit(0);
+            case GLFW_KEY_W:
+                isWireframe ? glPolygonMode(GL_FRONT_AND_BACK, GL_LINE) : glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                isWireframe = !isWireframe;
+                break;
+            case GLFW_KEY_X:
+                cur_idx = (cur_idx + 1) % num_models;
+                break;
+            case GLFW_KEY_Z:
+                cur_idx = (cur_idx + num_models - 1) % num_models;
+        }
+        
+    }
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
@@ -564,7 +595,9 @@ void setupRC()
 	glClearColor(0.2, 0.2, 0.2, 1.0);
 	vector<string> model_list{ "../ColorModels/bunny5KC.obj", "../ColorModels/dragon10KC.obj", "../ColorModels/lucy25KC.obj", "../ColorModels/teapot4KC.obj", "../ColorModels/dolphinC.obj"};
 	// [TODO] Load five model at here
-	LoadModels(model_list[cur_idx]);
+    for(auto m: model_list) {
+        LoadModels(m);
+    }
 }
 
 void glPrintContextInfo(bool printExtension)
