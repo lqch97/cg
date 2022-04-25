@@ -24,6 +24,7 @@ const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
 
 const int PI = 3.14159265359;
+bool isWireframe = false;
 bool mouse_pressed = false;
 int starting_press_x = -1;
 int starting_press_y = -1;
@@ -286,33 +287,47 @@ void drawPlane()
 
 
 	// [TODO] draw the plane with above vertices and color
-//    Shape tmp_shape;
-//    glGenVertexArrays(1, &tmp_shape.vao);
-//    glBindVertexArray(tmp_shape.vao);
-//
-//    glGenBuffers(1, &tmp_shape.vbo);
-//    glBindBuffer(GL_ARRAY_BUFFER, tmp_shape.vbo);
-//    glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(GL_FLOAT), vertices, GL_STATIC_DRAW);
-//    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-//    tmp_shape.vertex_count = 18 / 3;
-//
-//    glGenBuffers(1, &tmp_shape.p_color);
-//    glBindBuffer(GL_ARRAY_BUFFER, tmp_shape.p_color);
-//    glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(GL_FLOAT), colors, GL_STATIC_DRAW);
-//    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
-//
-//    glEnableVertexAttribArray(0);
-//    glEnableVertexAttribArray(1);
-//    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-//    glUniformMatrix4fv(iLocMVP, 1, GL_FALSE, mvp);
-//    glDrawArrays(GL_TRIANGLES, 0, tmp_shape.vertex_count);
-//    glBindVertexArray(0);
+    
+    Matrix4 MVP = project_matrix * view_matrix;
+    GLfloat mvp[16];
+
+    mvp[0] = MVP[0];  mvp[4] = MVP[1];   mvp[8] = MVP[2];    mvp[12] = MVP[3];
+    mvp[1] = MVP[4];  mvp[5] = MVP[5];   mvp[9] = MVP[6];    mvp[13] = MVP[7];
+    mvp[2] = MVP[8];  mvp[6] = MVP[9];   mvp[10] = MVP[10];   mvp[14] = MVP[11];
+    mvp[3] = MVP[12]; mvp[7] = MVP[13];  mvp[11] = MVP[14];   mvp[15] = MVP[15];
+
+    // VAO, VBO config
+    glGenVertexArrays(1, &quad.vao);
+    glBindVertexArray(quad.vao);
+
+    glGenBuffers(1, &quad.vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, quad.vbo);
+    glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(GL_FLOAT), vertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    quad.vertex_count = 18 / 3;
+
+    glGenBuffers(1, &quad.p_color);
+    glBindBuffer(GL_ARRAY_BUFFER, quad.p_color);
+    glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(GL_FLOAT), colors, GL_STATIC_DRAW);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    // End of configuration
+    
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glUniformMatrix4fv(iLocMVP, 1, GL_FALSE, mvp);
+    glDrawArrays(GL_TRIANGLES, 0, quad.vertex_count);
+//    glBindVertexArray(0); // TODO why?
 }
 
 // Render function for display rendering
 void RenderScene(void) {	
 	// clear canvas
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    
+    isWireframe ?
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE) : glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	Matrix4 T, R, S;
 	// [TODO] update translation, rotation and scaling
@@ -326,9 +341,8 @@ void RenderScene(void) {
 
 	// [TODO] multiply all the matrix
     MVP = project_matrix * view_matrix * T * R * S;
-//    MVP = T * R * S;
-	// [TODO] row-major ---> column-major
-
+	
+    // [TODO] row-major ---> column-major
     mvp[0] = MVP[0];  mvp[4] = MVP[1];   mvp[8] = MVP[2];    mvp[12] = MVP[3];
     mvp[1] = MVP[4];  mvp[5] = MVP[5];   mvp[9] = MVP[6];    mvp[13] = MVP[7];
     mvp[2] = MVP[8];  mvp[6] = MVP[9];   mvp[10] = MVP[10];   mvp[14] = MVP[11];
@@ -348,7 +362,6 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
     // [TODO] Call back function for keyboard
     if( !(action == GLFW_PRESS) ) return;
     
-    static bool isWireframe = false;
     unsigned int num_models = (unsigned int) models.size();
     
     switch (key) {
@@ -357,7 +370,6 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
                 
         case GLFW_KEY_W:
             isWireframe = !isWireframe;
-            isWireframe ? glPolygonMode(GL_FRONT_AND_BACK, GL_LINE) : glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             break;
                 
         case GLFW_KEY_Z:
@@ -423,6 +435,43 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	// [TODO] scroll up positive, otherwise it would be negtive
+    const float translation_factor = 0.001;
+    const float scaling_factor = 0.001;
+    const float rotation_factor = 0.001;
+    const float eye_translation_factor = 0.002;
+    const float center_translation_factor = 0.002;
+    const float up_vector_translation_factor = 0.02;
+    
+                                
+    switch (cur_trans_mode) {
+        case GeoTranslation: // TODO plus or minus?
+            models[cur_idx].position.z -= yoffset * translation_factor;
+            break;
+                    
+        case GeoScaling: // TODO plus or minus?
+            models[cur_idx].scale.z -= yoffset * scaling_factor;
+            break;
+                    
+        case GeoRotation: // TODO plus or minus?
+            models[cur_idx].rotation.z -= PI * yoffset * rotation_factor;
+            break;
+                    
+        case ViewEye: // TODO set factor
+            main_camera.position.z -= yoffset * eye_translation_factor;
+            setViewingMatrix();
+            break;
+                    
+        case ViewCenter:
+            main_camera.center.z -= yoffset * center_translation_factor;
+            setViewingMatrix();
+            break;
+                    
+        case ViewUp:
+            main_camera.up_vector.z -= yoffset * up_vector_translation_factor;
+            setViewingMatrix();
+            break;
+    }
+    
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
