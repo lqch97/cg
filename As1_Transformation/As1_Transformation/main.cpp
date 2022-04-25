@@ -225,7 +225,20 @@ void setViewingMatrix()
 void setOrthogonal()
 {
 	cur_proj_mode = Orthogonal;
-	// project_matrix [...] = ...
+    auto r_l = proj.right - proj.left;
+    auto t_b = proj.top - proj.bottom;
+    auto f_n = proj.farClip - proj.nearClip;
+    auto tx = -(proj.right + proj.left) / r_l;
+    auto ty = -(proj.top + proj.bottom) / t_b;
+    auto tz = -(proj.nearClip + proj.farClip) / f_n;
+    
+    project_matrix = Matrix4(
+        2/r_l, 0, 0, tx,
+        0, 2/t_b, 0, ty,
+        0, 0, -2/f_n, tz,
+        0, 0, 0, 1
+    );
+    
 }
 
 // [TODO] compute persepective projection matrix
@@ -234,13 +247,14 @@ void setPerspective()
 	cur_proj_mode = Perspective;
 	// project_matrix [...] = ...
         
-            float f = 1 / (tan(proj.fovy / 2 * PI / 180.0));
-            project_matrix = Matrix4(
-                    f / proj.aspect, 0, 0, 0,
-                    0, f, 0, 0,
-                    0, 0, (proj.farClip + proj.nearClip) / (proj.nearClip - proj.farClip), (2 * proj.farClip * proj.nearClip) / (proj.nearClip - proj.farClip),
-                    0, 0, -1, 0
-            );
+    float f = 1 / (tan(proj.fovy / 2 * PI)); // cot(fovy / 2)
+    
+    project_matrix = Matrix4(
+        f / proj.aspect, 0, 0, 0,
+        0, f, 0, 0,
+        0, 0, (proj.farClip + proj.nearClip) / (proj.nearClip - proj.farClip), (2 * proj.farClip * proj.nearClip) / (proj.nearClip - proj.farClip),
+        0, 0, -1, 0
+    );
 }
 
 
@@ -272,6 +286,27 @@ void drawPlane()
 
 
 	// [TODO] draw the plane with above vertices and color
+//    Shape tmp_shape;
+//    glGenVertexArrays(1, &tmp_shape.vao);
+//    glBindVertexArray(tmp_shape.vao);
+//
+//    glGenBuffers(1, &tmp_shape.vbo);
+//    glBindBuffer(GL_ARRAY_BUFFER, tmp_shape.vbo);
+//    glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(GL_FLOAT), vertices, GL_STATIC_DRAW);
+//    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+//    tmp_shape.vertex_count = 18 / 3;
+//
+//    glGenBuffers(1, &tmp_shape.p_color);
+//    glBindBuffer(GL_ARRAY_BUFFER, tmp_shape.p_color);
+//    glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(GL_FLOAT), colors, GL_STATIC_DRAW);
+//    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+//
+//    glEnableVertexAttribArray(0);
+//    glEnableVertexAttribArray(1);
+//    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+//    glUniformMatrix4fv(iLocMVP, 1, GL_FALSE, mvp);
+//    glDrawArrays(GL_TRIANGLES, 0, tmp_shape.vertex_count);
+//    glBindVertexArray(0);
 }
 
 // Render function for display rendering
@@ -366,7 +401,21 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
             break;
                                                                                 
         case GLFW_KEY_I:
-            cout << "Translation matrix is \n"; // TODO output matrix here
+            auto cur_model = models[cur_idx];
+            auto T = translate(cur_model.position);
+            auto R = rotate(cur_model.rotation);
+            auto S = scaling(cur_model.scale);
+            cout << "Translation matrix:" << std::endl;
+            cout << T << std::endl;
+            cout << "Scaling matrix:" << std::endl;
+            cout << S << std::endl;
+            cout << "Rotation matrix:" << std::endl;
+            cout << R << std::endl;
+            cout << "Viewing matrix:" << std::endl;
+            cout << view_matrix << std::endl;
+            cout << "Projection Matrix:" << std::endl;
+            cout << project_matrix << std::endl;
+            break;
     }
 
 }
@@ -406,6 +455,10 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
     const float translation_factor = 0.001;
     const float scaling_factor = 0.001;
     const float rotation_factor = 0.001;
+    const float eye_translation_factor = 0.002;
+    const float center_translation_factor = 0.002;
+    const float up_vector_translation_factor = 0.02;
+    
                                 
     switch (cur_trans_mode) {
         case GeoTranslation: // TODO plus or minus?
@@ -424,20 +477,20 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
             break;
                     
         case ViewEye: // TODO set factor
-            main_camera.position.x -= delta_x * 0.002;
-            main_camera.position.y -= delta_y * 0.002;
+            main_camera.position.x -= delta_x * eye_translation_factor;
+            main_camera.position.y -= delta_y * eye_translation_factor;
             setViewingMatrix();
             break;
                     
         case ViewCenter:
-            main_camera.center.x -= delta_x * 0.002;
-            main_camera.center.y += delta_y * 0.002;
+            main_camera.center.x -= delta_x * center_translation_factor;
+            main_camera.center.y += delta_y * center_translation_factor;
             setViewingMatrix();
             break;
                     
         case ViewUp:
-            main_camera.up_vector.x -= delta_x * 0.02;
-            main_camera.up_vector.y -= delta_y * 0.02;
+            main_camera.up_vector.x -= delta_x * up_vector_translation_factor;
+            main_camera.up_vector.y -= delta_y * up_vector_translation_factor;
             setViewingMatrix();
             break;
     }
@@ -670,7 +723,7 @@ void LoadModels(string model_path)
 	glBindBuffer(GL_ARRAY_BUFFER, tmp_shape.vbo);
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GL_FLOAT), &vertices.at(0), GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-	tmp_shape.vertex_count = vertices.size() / 3;
+	tmp_shape.vertex_count = (int)vertices.size() / 3;
 
 	glGenBuffers(1, &tmp_shape.p_color);
 	glBindBuffer(GL_ARRAY_BUFFER, tmp_shape.p_color);
