@@ -99,102 +99,63 @@ vector<Shape> m_shape_list;
 int cur_idx = 0; // represent which model should be rendered now
 
 
-static GLvoid Normalize(GLfloat v[3])
-{
-	GLfloat l;
-
-	l = (GLfloat)sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-	v[0] /= l;
-	v[1] /= l;
-	v[2] /= l;
-}
-
-static GLvoid Cross(GLfloat u[3], GLfloat v[3], GLfloat n[3])
-{
-
-	n[0] = u[1] * v[2] - u[2] * v[1];
-	n[1] = u[2] * v[0] - u[0] * v[2];
-	n[2] = u[0] * v[1] - u[1] * v[0];
-}
-
-
 // [TODO] given a translation vector then output a Matrix4 (Translation Matrix)
 Matrix4 translate(Vector3 vec)
 {
-	Matrix4 mat;
-    
-    mat = Matrix4(
+    return Matrix4(
         1, 0, 0, vec.x,
         0, 1, 0, vec.y,
         0, 0, 1, vec.z,
         0, 0, 0, 1
     );
-
-	return mat;
 }
 
 // [TODO] given a scaling vector then output a Matrix4 (Scaling Matrix)
 Matrix4 scaling(Vector3 vec)
 {
-	Matrix4 mat;
-
-	mat = Matrix4(
-        vec.x, 0, 0, 0,
-        0, vec.y, 0, 0,
-        0, 0, vec.z, 0,
-        0, 0, 0, 1
+	return Matrix4(
+            vec.x, 0, 0, 0,
+            0, vec.y, 0, 0,
+            0, 0, vec.z, 0,
+            0, 0, 0, 1
 	);
-
-	return mat;
 }
 
 
 // [TODO] given a float value then ouput a rotation matrix alone axis-X (rotate alone axis-X)
 Matrix4 rotateX(GLfloat val)
 {
-	Matrix4 mat;
-
     // correct?
-	mat = Matrix4(
-		1, 0, 0, 0,
-        0, cos(val), sin(val), 0,
-        0, -sin(val), cos(val), 0,
-        0, 0, 0, 1
+	return  Matrix4(
+	    1, 0, 0, 0,
+            0, cos(val), sin(val), 0,
+            0, -sin(val), cos(val), 0,
+            0, 0, 0, 1
 	);
-
-	return mat;
 }
 
 // [TODO] given a float value then ouput a rotation matrix alone axis-Y (rotate alone axis-Y)
 Matrix4 rotateY(GLfloat val)
 {
-	Matrix4 mat;
-
     // correct?
-	mat = Matrix4(
-		cos(val), 0, -sin(val), 0,
-        0, 1, 0, 0,
-        sin(val), 0, cos(val), 0,
-        0, 0, 0, 1
+	return Matrix4(
+	    cos(val), 0, -sin(val), 0,
+            0, 1, 0, 0,
+            sin(val), 0, cos(val), 0,
+            0, 0, 0, 1
 	);
-
-	return mat;
 }
 
 // [TODO] given a float value then ouput a rotation matrix alone axis-Z (rotate alone axis-Z)
 Matrix4 rotateZ(GLfloat val)
 {
-	Matrix4 mat;
-    
     // correct ?
-	mat = Matrix4(
-		cos(val), -sin(val), 0, 0,
-        sin(val), cos(val), 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1
+	return Matrix4(
+	    cos(val), -sin(val), 0, 0,
+            sin(val), cos(val), 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1
 	);
-
-	return mat;
 }
 
 Matrix4 rotate(Vector3 vec)
@@ -225,7 +186,7 @@ void setViewingMatrix()
 // [TODO] compute orthogonal projection matrix
 void setOrthogonal()
 {
-	cur_proj_mode = Orthogonal;
+    cur_proj_mode = Orthogonal;
     auto r_l = proj.right - proj.left;
     auto t_b = proj.top - proj.bottom;
     auto f_n = proj.farClip - proj.nearClip;
@@ -246,16 +207,14 @@ void setOrthogonal()
 void setPerspective()
 {
 	cur_proj_mode = Perspective;
-	// project_matrix [...] = ...
-        
-    float f = 1 / (tan(proj.fovy / 2 * PI)); // cot(fovy / 2)
-    
-    project_matrix = Matrix4(
-        f / proj.aspect, 0, 0, 0,
-        0, f, 0, 0,
-        0, 0, (proj.farClip + proj.nearClip) / (proj.nearClip - proj.farClip), (2 * proj.farClip * proj.nearClip) / (proj.nearClip - proj.farClip),
-        0, 0, -1, 0
-    );
+
+	float f = 1 / (tan(proj.fovy / 2 * PI)); // f = cot(fovy / 2 * PI)
+	project_matrix = Matrix4(
+	    f / proj.aspect, 0, 0, 0,
+	    0, f, 0, 0,
+	    0, 0, (proj.farClip + proj.nearClip) / (proj.nearClip - proj.farClip), (2 * proj.farClip * proj.nearClip) / (proj.nearClip - proj.farClip),
+	    0, 0, -1, 0
+	);
 }
 
 
@@ -288,65 +247,63 @@ void drawPlane()
 
 	// [TODO] draw the plane with above vertices and color
     
-    Matrix4 MVP = project_matrix * view_matrix;
-    GLfloat mvp[16];
+	Matrix4 MVP = project_matrix * view_matrix;
+	GLfloat mvp[16];
 
-    mvp[0] = MVP[0];  mvp[4] = MVP[1];   mvp[8] = MVP[2];    mvp[12] = MVP[3];
-    mvp[1] = MVP[4];  mvp[5] = MVP[5];   mvp[9] = MVP[6];    mvp[13] = MVP[7];
-    mvp[2] = MVP[8];  mvp[6] = MVP[9];   mvp[10] = MVP[10];   mvp[14] = MVP[11];
-    mvp[3] = MVP[12]; mvp[7] = MVP[13];  mvp[11] = MVP[14];   mvp[15] = MVP[15];
+	mvp[0] = MVP[0];  mvp[4] = MVP[1];   mvp[8] = MVP[2];    mvp[12] = MVP[3];
+	mvp[1] = MVP[4];  mvp[5] = MVP[5];   mvp[9] = MVP[6];    mvp[13] = MVP[7];
+	mvp[2] = MVP[8];  mvp[6] = MVP[9];   mvp[10] = MVP[10];   mvp[14] = MVP[11];
+	mvp[3] = MVP[12]; mvp[7] = MVP[13];  mvp[11] = MVP[14];   mvp[15] = MVP[15];
 
-    // VAO, VBO config
-    glGenVertexArrays(1, &quad.vao);
-    glBindVertexArray(quad.vao);
+	// VAO, VBO config
+	glGenVertexArrays(1, &quad.vao);
+	glBindVertexArray(quad.vao);
 
-    glGenBuffers(1, &quad.vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, quad.vbo);
-    glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(GL_FLOAT), vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-    quad.vertex_count = 18 / 3;
+	glGenBuffers(1, &quad.vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, quad.vbo);
+	glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(GL_FLOAT), vertices, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	quad.vertex_count = 18 / 3;
 
-    glGenBuffers(1, &quad.p_color);
-    glBindBuffer(GL_ARRAY_BUFFER, quad.p_color);
-    glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(GL_FLOAT), colors, GL_STATIC_DRAW);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glGenBuffers(1, &quad.p_color);
+	glBindBuffer(GL_ARRAY_BUFFER, quad.p_color);
+	glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(GL_FLOAT), colors, GL_STATIC_DRAW);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-    // End of configuration
-    
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    glUniformMatrix4fv(iLocMVP, 1, GL_FALSE, mvp);
-    glDrawArrays(GL_TRIANGLES, 0, quad.vertex_count);
-//    glBindVertexArray(0); // TODO why?
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+	// End of configuration
+
+	// Draw arrays
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glUniformMatrix4fv(iLocMVP, 1, GL_FALSE, mvp);
+	glDrawArrays(GL_TRIANGLES, 0, quad.vertex_count);
 }
 
 // Render function for display rendering
 void RenderScene(void) {	
 	// clear canvas
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-    
-    isWireframe ?
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE) : glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-	Matrix4 T, R, S;
+	// wireframe or solid mode
+	isWireframe ?
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE) : glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
 	// [TODO] update translation, rotation and scaling
-    model cur_model = models[cur_idx];
-    T = translate(cur_model.position);
-    R = rotate(cur_model.rotation);
-    S = scaling(cur_model.scale);
-
-	Matrix4 MVP;
-	GLfloat mvp[16];
+	model cur_model = models[cur_idx];
+	Matrix4 T = translate(cur_model.position),
+		R = rotate(cur_model.rotation),
+		S = scaling(cur_model.scale);
 
 	// [TODO] multiply all the matrix
-    MVP = project_matrix * view_matrix * T * R * S;
-	
-    // [TODO] row-major ---> column-major
-    mvp[0] = MVP[0];  mvp[4] = MVP[1];   mvp[8] = MVP[2];    mvp[12] = MVP[3];
-    mvp[1] = MVP[4];  mvp[5] = MVP[5];   mvp[9] = MVP[6];    mvp[13] = MVP[7];
-    mvp[2] = MVP[8];  mvp[6] = MVP[9];   mvp[10] = MVP[10];   mvp[14] = MVP[11];
-    mvp[3] = MVP[12]; mvp[7] = MVP[13];  mvp[11] = MVP[14];   mvp[15] = MVP[15];
+	Matrix4 MVP = project_matrix * view_matrix * T * R * S;
+
+	// [TODO] row-major ---> column-major
+	GLfloat mvp[16];
+	mvp[0] = MVP[0];  mvp[4] = MVP[1];   mvp[8] = MVP[2];    mvp[12] = MVP[3];
+	mvp[1] = MVP[4];  mvp[5] = MVP[5];   mvp[9] = MVP[6];    mvp[13] = MVP[7];
+	mvp[2] = MVP[8];  mvp[6] = MVP[9];   mvp[10] = MVP[10];   mvp[14] = MVP[11];
+	mvp[3] = MVP[12]; mvp[7] = MVP[13];  mvp[11] = MVP[14];   mvp[15] = MVP[15];
 
 	// use uniform to send mvp to vertex shader
 	glUniformMatrix4fv(iLocMVP, 1, GL_FALSE, mvp);
@@ -456,7 +413,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
             models[cur_idx].rotation.z -= PI * yoffset * rotation_factor;
             break;
                     
-        case ViewEye: // TODO set factor
+        case ViewEye:
             main_camera.position.z -= yoffset * eye_translation_factor;
             setViewingMatrix();
             break;
@@ -525,7 +482,7 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
             models[cur_idx].rotation.y += PI * delta_x * rotation_factor;
             break;
                     
-        case ViewEye: // TODO set factor
+        case ViewEye:
             main_camera.position.x -= delta_x * eye_translation_factor;
             main_camera.position.y -= delta_y * eye_translation_factor;
             setViewingMatrix();
@@ -760,7 +717,7 @@ void LoadModels(string model_path)
 		exit(1);
 	}
 
-	printf("Load Models Success ! Shapes size %d Maerial size %d\n", shapes.size(), materials.size());
+	printf("Load Models Success ! Shapes size %d Maerial size %d\n", (int)shapes.size(), (int)materials.size());
 	
 	normalization(&attrib, vertices, colors, &shapes[0]);
 
