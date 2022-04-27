@@ -125,11 +125,10 @@ Matrix4 scaling(Vector3 vec)
 // [TODO] given a float value then ouput a rotation matrix alone axis-X (rotate alone axis-X)
 Matrix4 rotateX(GLfloat val)
 {
-    // correct?
 	return  Matrix4(
 	    1, 0, 0, 0,
-            0, cos(val), sin(val), 0,
-            0, -sin(val), cos(val), 0,
+            0, cos(val), -sin(val), 0,
+            0, sin(val), cos(val), 0,
             0, 0, 0, 1
 	);
 }
@@ -137,11 +136,10 @@ Matrix4 rotateX(GLfloat val)
 // [TODO] given a float value then ouput a rotation matrix alone axis-Y (rotate alone axis-Y)
 Matrix4 rotateY(GLfloat val)
 {
-    // correct?
 	return Matrix4(
-	    cos(val), 0, -sin(val), 0,
+	    cos(val), 0, sin(val), 0,
             0, 1, 0, 0,
-            sin(val), 0, cos(val), 0,
+            -sin(val), 0, cos(val), 0,
             0, 0, 0, 1
 	);
 }
@@ -149,7 +147,6 @@ Matrix4 rotateY(GLfloat val)
 // [TODO] given a float value then ouput a rotation matrix alone axis-Z (rotate alone axis-Z)
 Matrix4 rotateZ(GLfloat val)
 {
-    // correct ?
 	return Matrix4(
 	    cos(val), -sin(val), 0, 0,
             sin(val), cos(val), 0, 0,
@@ -391,26 +388,25 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-	// [TODO] scroll up positive, otherwise it would be negtive
+    // [TODO] scroll up positive, otherwise it would be negtive
     const float translation_factor = 0.001;
     const float scaling_factor = 0.001;
     const float rotation_factor = 0.001;
     const float eye_translation_factor = 0.002;
     const float center_translation_factor = 0.002;
     const float up_vector_translation_factor = 0.02;
-    
                                 
     switch (cur_trans_mode) {
-        case GeoTranslation: // TODO plus or minus?
-            models[cur_idx].position.z -= yoffset * translation_factor;
+        case GeoTranslation:
+            models[cur_idx].position.z += yoffset * translation_factor;
             break;
                     
-        case GeoScaling: // TODO plus or minus?
-            models[cur_idx].scale.z -= yoffset * scaling_factor;
+        case GeoScaling:
+            models[cur_idx].scale.z += yoffset * scaling_factor;
             break;
                     
-        case GeoRotation: // TODO plus or minus?
-            models[cur_idx].rotation.z -= PI * yoffset * rotation_factor;
+        case GeoRotation:
+            models[cur_idx].rotation.z += PI * yoffset * rotation_factor;
             break;
                     
         case ViewEye:
@@ -419,12 +415,12 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
             break;
                     
         case ViewCenter:
-            main_camera.center.z -= yoffset * center_translation_factor;
+            main_camera.center.z += yoffset * center_translation_factor;
             setViewingMatrix();
             break;
                     
         case ViewUp:
-            main_camera.up_vector.z -= yoffset * up_vector_translation_factor;
+            main_camera.up_vector.z += yoffset * up_vector_translation_factor;
             setViewingMatrix();
             break;
     }
@@ -433,7 +429,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
-	// [TODO] mouse press callback function
+    // [TODO] mouse press callback function
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
         if (action == GLFW_PRESS) mouse_pressed = true;
         if (action == GLFW_RELEASE) {
@@ -446,7 +442,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
 {
-	// [TODO] cursor position callback function
+    // [TODO] cursor position callback function
     if(!mouse_pressed) return;
     
     if(starting_press_x == -1 || starting_press_y == -1) {
@@ -456,7 +452,7 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
     }
     
     int delta_x = xpos - starting_press_x;
-    int delta_y = ypos - starting_press_y;
+    int delta_y = -(ypos - starting_press_y); // move up: - -> +
     
     const float translation_factor = 0.001;
     const float scaling_factor = 0.001;
@@ -464,22 +460,21 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
     const float eye_translation_factor = 0.002;
     const float center_translation_factor = 0.002;
     const float up_vector_translation_factor = 0.02;
-    
                                 
     switch (cur_trans_mode) {
-        case GeoTranslation: // TODO plus or minus?
+        case GeoTranslation:
             models[cur_idx].position.x += delta_x * translation_factor;
-            models[cur_idx].position.y -= delta_y * translation_factor;
+            models[cur_idx].position.y += delta_y * translation_factor;
             break;
                     
-        case GeoScaling: // TODO plus or minus?
+        case GeoScaling:
             models[cur_idx].scale.x -= delta_x * scaling_factor;
-            models[cur_idx].scale.y -= delta_y * scaling_factor;
+            models[cur_idx].scale.y += delta_y * scaling_factor;
             break;
                     
-        case GeoRotation: // TODO plus or minus?
+        case GeoRotation:
             models[cur_idx].rotation.x += PI * delta_y * rotation_factor;
-            models[cur_idx].rotation.y += PI * delta_x * rotation_factor;
+            models[cur_idx].rotation.y -= PI * delta_x * rotation_factor;
             break;
                     
         case ViewEye:
@@ -489,14 +484,14 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
             break;
                     
         case ViewCenter:
-            main_camera.center.x -= delta_x * center_translation_factor;
+            main_camera.center.x += delta_x * center_translation_factor;
             main_camera.center.y += delta_y * center_translation_factor;
             setViewingMatrix();
             break;
                     
         case ViewUp:
             main_camera.up_vector.x -= delta_x * up_vector_translation_factor;
-            main_camera.up_vector.y -= delta_y * up_vector_translation_factor;
+            main_camera.up_vector.y += delta_y * up_vector_translation_factor;
             setViewingMatrix();
             break;
     }
@@ -570,7 +565,7 @@ void setShaders()
 		glUseProgram(p);
     else
     {
-        system("pause");
+        system("pause"); 
         exit(123);
     }
 }
