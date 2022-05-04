@@ -23,7 +23,7 @@ using namespace std;
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
 
-const int PI = 3.14159265359;
+const float ANGLE_DEGREE = 3.14159265359 / 180;
 bool isWireframe = false;
 bool mouse_pressed = false;
 int starting_press_x = -1;
@@ -205,14 +205,14 @@ void setPerspective()
 {
 	cur_proj_mode = Perspective;
 
-	float f = 1 / (tan(proj.fovy / 2 * PI)); // f = cot(fovy / 2 * PI)
+	float f = 1 / (tan(proj.fovy / 2 * ANGLE_DEGREE)); // f = cot(fovy / 2)
 	project_matrix = Matrix4(
 	    f / proj.aspect, 0, 0, 0,
 	    0, f, 0, 0,
 	    0, 0, (proj.farClip + proj.nearClip) / (proj.nearClip - proj.farClip), (2 * proj.farClip * proj.nearClip) / (proj.nearClip - proj.farClip),
 	    0, 0, -1, 0
 	);
-}
+} 
 
 
 // Vertex buffers
@@ -223,6 +223,13 @@ void ChangeSize(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
 	// [TODO] change your aspect ratio
+
+    proj.aspect = (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT;
+
+    //reset projection matirx
+	if (cur_proj_mode == Perspective) {
+        setPerspective();
+	}
 }
 
 void drawPlane()
@@ -244,32 +251,35 @@ void drawPlane()
 
 	// [TODO] draw the plane with above vertices and color
     
-	Matrix4 MVP = project_matrix * view_matrix;
-	GLfloat mvp[16];
+    static bool vao_setted = false;
+   
+    // config VAO, VBO
+    if(!vao_setted) {
+        glGenVertexArrays(1, &quad.vao);
+        glBindVertexArray(quad.vao);
 
-	mvp[0] = MVP[0];  mvp[4] = MVP[1];   mvp[8] = MVP[2];    mvp[12] = MVP[3];
-	mvp[1] = MVP[4];  mvp[5] = MVP[5];   mvp[9] = MVP[6];    mvp[13] = MVP[7];
-	mvp[2] = MVP[8];  mvp[6] = MVP[9];   mvp[10] = MVP[10];   mvp[14] = MVP[11];
-	mvp[3] = MVP[12]; mvp[7] = MVP[13];  mvp[11] = MVP[14];   mvp[15] = MVP[15];
+        glGenBuffers(1, &quad.vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, quad.vbo);
+        glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(GL_FLOAT), vertices, GL_STATIC_DRAW);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        quad.vertex_count = 18 / 3;
 
-	// VAO, VBO config
-	glGenVertexArrays(1, &quad.vao);
-	glBindVertexArray(quad.vao);
+        glGenBuffers(1, &quad.p_color);
+        glBindBuffer(GL_ARRAY_BUFFER, quad.p_color);
+        glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(GL_FLOAT), colors, GL_STATIC_DRAW);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-	glGenBuffers(1, &quad.vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, quad.vbo);
-	glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(GL_FLOAT), vertices, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-	quad.vertex_count = 18 / 3;
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+    }
+    
+    Matrix4 MVP = project_matrix * view_matrix;
+    GLfloat mvp[16];
 
-	glGenBuffers(1, &quad.p_color);
-	glBindBuffer(GL_ARRAY_BUFFER, quad.p_color);
-	glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(GL_FLOAT), colors, GL_STATIC_DRAW);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-	glEnableVertexAttribArray(0);
-	glEnableVertexAttribArray(1);
-	// End of configuration
+    mvp[0] = MVP[0];  mvp[4] = MVP[1];   mvp[8] = MVP[2];    mvp[12] = MVP[3];
+    mvp[1] = MVP[4];  mvp[5] = MVP[5];   mvp[9] = MVP[6];    mvp[13] = MVP[7];
+    mvp[2] = MVP[8];  mvp[6] = MVP[9];   mvp[10] = MVP[10];   mvp[14] = MVP[11];
+    mvp[3] = MVP[12]; mvp[7] = MVP[13];  mvp[11] = MVP[14];   mvp[15] = MVP[15];
 
 	// Draw arrays
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -389,12 +399,12 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     // [TODO] scroll up positive, otherwise it would be negtive
-    const float translation_factor = 0.001;
-    const float scaling_factor = 0.001;
-    const float rotation_factor = 0.001;
-    const float eye_translation_factor = 0.002;
-    const float center_translation_factor = 0.002;
-    const float up_vector_translation_factor = 0.02;
+    const float translation_factor = 0.01;
+    const float scaling_factor = 0.01;
+    const float rotation_factor = 0.2;
+    const float eye_translation_factor = 0.01;
+    const float center_translation_factor = 0.01;
+    const float up_vector_translation_factor = 0.01;
                                 
     switch (cur_trans_mode) {
         case GeoTranslation:
@@ -406,7 +416,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
             break;
                     
         case GeoRotation:
-            models[cur_idx].rotation.z += PI * yoffset * rotation_factor;
+            models[cur_idx].rotation.z += ANGLE_DEGREE * yoffset * rotation_factor;
             break;
                     
         case ViewEye:
@@ -454,12 +464,12 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
     int delta_x = xpos - starting_press_x;
     int delta_y = -(ypos - starting_press_y); // move up: - -> +
     
-    const float translation_factor = 0.001;
-    const float scaling_factor = 0.001;
-    const float rotation_factor = 0.001;
-    const float eye_translation_factor = 0.002;
-    const float center_translation_factor = 0.002;
-    const float up_vector_translation_factor = 0.02;
+    const float translation_factor = 0.01;
+    const float scaling_factor = 0.01;
+    const float rotation_factor = 0.2;
+    const float eye_translation_factor = 0.01;
+    const float center_translation_factor = 0.01;
+    const float up_vector_translation_factor = 0.01;
                                 
     switch (cur_trans_mode) {
         case GeoTranslation:
@@ -473,8 +483,8 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
             break;
                     
         case GeoRotation:
-            models[cur_idx].rotation.x += PI * delta_y * rotation_factor;
-            models[cur_idx].rotation.y -= PI * delta_x * rotation_factor;
+            models[cur_idx].rotation.x += ANGLE_DEGREE * delta_y * rotation_factor;
+            models[cur_idx].rotation.y -= ANGLE_DEGREE * delta_x * rotation_factor;
             break;
                     
         case ViewEye:
@@ -751,7 +761,7 @@ void initParameter()
 	proj.bottom = -1;
 	proj.nearClip = 0.001;
 	proj.farClip = 100.0;
-	proj.fovy = 80;
+    proj.fovy = 80;
 	proj.aspect = (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT;
 
 	main_camera.position = Vector3(0.0f, 0.0f, 2.0f);
@@ -810,7 +820,7 @@ int main(int argc, char **argv)
 
     
     // create window
-	GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Student ID HW1", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "110062653 HW1", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
