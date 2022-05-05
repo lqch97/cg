@@ -41,7 +41,7 @@ enum TransMode
 
 GLint iLocMVP;
 
-vector<string> filenames; // .obj filename list
+vector<string> filenames; // .obj filename list 
 
 struct model
 {
@@ -250,40 +250,43 @@ void drawPlane()
 
 
 	// [TODO] draw the plane with above vertices and color
+
+	static bool vao_setted = false;
+
+	// config VAO, VBO
+	if(!vao_setted) {
+		glGenVertexArrays(1, &quad.vao);
+		glBindVertexArray(quad.vao);
+
+		glGenBuffers(1, &quad.vbo);
+		glBindBuffer(GL_ARRAY_BUFFER, quad.vbo);
+		glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(GL_FLOAT), vertices, GL_STATIC_DRAW);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+		quad.vertex_count = 18 / 3;
+
+		glGenBuffers(1, &quad.p_color);
+		glBindBuffer(GL_ARRAY_BUFFER, quad.p_color);
+		glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(GL_FLOAT), colors, GL_STATIC_DRAW);
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+		glEnableVertexAttribArray(0);
+		glEnableVertexAttribArray(1);
+
+		vao_setted = true;
+	}
     
-    static bool vao_setted = false;
-   
-    // config VAO, VBO
-    if(!vao_setted) {
-        glGenVertexArrays(1, &quad.vao);
-        glBindVertexArray(quad.vao);
+	Matrix4 MVP = project_matrix * view_matrix;
+	GLfloat mvp[16];
 
-        glGenBuffers(1, &quad.vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, quad.vbo);
-        glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(GL_FLOAT), vertices, GL_STATIC_DRAW);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-        quad.vertex_count = 18 / 3;
-
-        glGenBuffers(1, &quad.p_color);
-        glBindBuffer(GL_ARRAY_BUFFER, quad.p_color);
-        glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(GL_FLOAT), colors, GL_STATIC_DRAW);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
-    }
-    
-    Matrix4 MVP = project_matrix * view_matrix;
-    GLfloat mvp[16];
-
-    mvp[0] = MVP[0];  mvp[4] = MVP[1];   mvp[8] = MVP[2];    mvp[12] = MVP[3];
-    mvp[1] = MVP[4];  mvp[5] = MVP[5];   mvp[9] = MVP[6];    mvp[13] = MVP[7];
-    mvp[2] = MVP[8];  mvp[6] = MVP[9];   mvp[10] = MVP[10];   mvp[14] = MVP[11];
-    mvp[3] = MVP[12]; mvp[7] = MVP[13];  mvp[11] = MVP[14];   mvp[15] = MVP[15];
+	mvp[0] = MVP[0];  mvp[4] = MVP[1];   mvp[8] = MVP[2];    mvp[12] = MVP[3];
+	mvp[1] = MVP[4];  mvp[5] = MVP[5];   mvp[9] = MVP[6];    mvp[13] = MVP[7];
+	mvp[2] = MVP[8];  mvp[6] = MVP[9];   mvp[10] = MVP[10];   mvp[14] = MVP[11];
+	mvp[3] = MVP[12]; mvp[7] = MVP[13];  mvp[11] = MVP[14];   mvp[15] = MVP[15];
 
 	// Draw arrays
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glUniformMatrix4fv(iLocMVP, 1, GL_FALSE, mvp);
+	glBindVertexArray(quad.vao);
 	glDrawArrays(GL_TRIANGLES, 0, quad.vertex_count);
 }
 
