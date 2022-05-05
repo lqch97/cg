@@ -224,11 +224,11 @@ void ChangeSize(GLFWwindow* window, int width, int height)
 	glViewport(0, 0, width, height);
 	// [TODO] change your aspect ratio
 
-    proj.aspect = (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT;
+	proj.aspect = (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT;
 
-    //reset projection matirx
+	//reset projection matirx
 	if (cur_proj_mode == Perspective) {
-        setPerspective();
+		setPerspective();
 	}
 }
 
