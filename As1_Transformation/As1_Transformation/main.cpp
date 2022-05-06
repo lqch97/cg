@@ -224,7 +224,7 @@ void ChangeSize(GLFWwindow* window, int width, int height)
 	glViewport(0, 0, width, height);
 	// [TODO] change your aspect ratio
 
-	proj.aspect = (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT;
+	proj.aspect = (float)width / (float)height;
 
 	//reset projection matirx
 	if (cur_proj_mode == Perspective) {
@@ -286,7 +286,7 @@ void drawPlane()
 	// Draw arrays
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glUniformMatrix4fv(iLocMVP, 1, GL_FALSE, mvp);
-	glBindVertexArray(quad.vao);
+ 	glBindVertexArray(quad.vao);
 	glDrawArrays(GL_TRIANGLES, 0, quad.vertex_count);
 }
 
