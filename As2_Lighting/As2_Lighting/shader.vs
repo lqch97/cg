@@ -11,7 +11,7 @@ uniform mat4 mvp;
 void main()
 {
 	// [TODO]
-	gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
+	gl_Position = mvp * vec4(aPos.x, aPos.y, aPos.z, 1.0);
 	vertex_color = aColor;
 	vertex_normal = aNormal;
 }

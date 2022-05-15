@@ -22,6 +22,7 @@ using namespace std;
 // Default window size
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 800;
+const float ANGLE_DEGREE = 3.14159265359 / 180;
 
 bool mouse_pressed = false;
 int starting_press_x = -1;
@@ -100,94 +101,60 @@ Matrix4 project_matrix;
 int cur_idx = 0; // represent which model should be rendered now
 
 
-static GLvoid Normalize(GLfloat v[3])
-{
-	GLfloat l;
-
-	l = (GLfloat)sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-	v[0] /= l;
-	v[1] /= l;
-	v[2] /= l;
-}
-
-static GLvoid Cross(GLfloat u[3], GLfloat v[3], GLfloat n[3])
-{
-
-	n[0] = u[1] * v[2] - u[2] * v[1];
-	n[1] = u[2] * v[0] - u[0] * v[2];
-	n[2] = u[0] * v[1] - u[1] * v[0];
-}
-
-
-// [TODO] given a translation vector then output a Matrix4 (Translation Matrix)
+// [DO] given a translation vector then output a Matrix4 (Translation Matrix)
 Matrix4 translate(Vector3 vec)
 {
-	Matrix4 mat;
-
-	/*
-	mat = Matrix4(
-		...
-	);
-	*/
-
-	return mat;
+    return Matrix4(
+        1, 0, 0, vec.x,
+        0, 1, 0, vec.y,
+        0, 0, 1, vec.z,
+        0, 0, 0, 1
+    );
 }
 
-// [TODO] given a scaling vector then output a Matrix4 (Scaling Matrix)
+// [DO] given a scaling vector then output a Matrix4 (Scaling Matrix)
 Matrix4 scaling(Vector3 vec)
 {
-	Matrix4 mat;
-
-	/*
-	mat = Matrix4(
-		...
-	);
-	*/
-
-	return mat;
+    return Matrix4(
+        vec.x, 0, 0, 0,
+        0, vec.y, 0, 0,
+        0, 0, vec.z, 0,
+        0, 0, 0, 1
+    );
 }
 
 
-// [TODO] given a float value then ouput a rotation matrix alone axis-X (rotate alone axis-X)
+// [DO] given a float value then ouput a rotation matrix alone axis-X (rotate alone axis-X)
 Matrix4 rotateX(GLfloat val)
 {
-	Matrix4 mat;
-
-	/*
-	mat = Matrix4(
-		...
-	);
-	*/
-
-	return mat;
+    return  Matrix4(
+        1, 0, 0, 0,
+        0, cos(val), -sin(val), 0,
+        0, sin(val), cos(val), 0,
+        0, 0, 0, 1
+    );
 }
 
-// [TODO] given a float value then ouput a rotation matrix alone axis-Y (rotate alone axis-Y)
+// [DO] given a float value then ouput a rotation matrix alone axis-Y (rotate alone axis-Y)
 Matrix4 rotateY(GLfloat val)
 {
-	Matrix4 mat;
-
-	/*
-	mat = Matrix4(
-		...
-	);
-	*/
-
-	return mat;
+    return Matrix4(
+        cos(val), 0, sin(val), 0,
+        0, 1, 0, 0,
+        -sin(val), 0, cos(val), 0,
+        0, 0, 0, 1
+    );
 }
 
-// [TODO] given a float value then ouput a rotation matrix alone axis-Z (rotate alone axis-Z)
+// [DO] given a float value then ouput a rotation matrix alone axis-Z (rotate alone axis-Z)
 Matrix4 rotateZ(GLfloat val)
 {
-	Matrix4 mat;
-
-	/*
-	mat = Matrix4(
-		...
-	);
-	*/
-
-	return mat;
+    return Matrix4(
+        cos(val), -sin(val), 0, 0,
+        sin(val), cos(val), 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+    );
 }
 
 Matrix4 rotate(Vector3 vec)
@@ -195,17 +162,36 @@ Matrix4 rotate(Vector3 vec)
 	return rotateX(vec.x)*rotateY(vec.y)*rotateZ(vec.z);
 }
 
-// [TODO] compute viewing matrix accroding to the setting of main_camera
+// [DO] compute viewing matrix accroding to the setting of main_camera
 void setViewingMatrix()
 {
-	// view_matrix[...] = ...
+    Vector3 p1_p2 = main_camera.center - main_camera.position,
+                p1_p3 = main_camera.up_vector,
+                new_z = -(p1_p2).normalize(),
+                new_x = p1_p2.cross(p1_p3).normalize(),
+                new_y = new_z.cross(new_x);
+
+    Matrix4 T = translate(-main_camera.position);
+    Matrix4 R = Matrix4(
+        new_x[0], new_x[1], new_x[2], 0,
+        new_y[0], new_y[1], new_y[2], 0,
+        new_z[0], new_z[1], new_z[2], 0,
+        0, 0, 0, 1
+    );
+
+    view_matrix = R * T;
 }
 
-// [TODO] compute persepective projection matrix
+// [DO] compute persepective projection matrix
 void setPerspective()
 {
-	// GLfloat f = ...
-	// project_matrix [...] = ...
+    float f = 1 / (tan(proj.fovy / 2 * ANGLE_DEGREE)); // f = cot(fovy / 2)
+    project_matrix = Matrix4(
+        f / proj.aspect, 0, 0, 0,
+        0, f, 0, 0,
+        0, 0, (proj.farClip + proj.nearClip) / (proj.nearClip - proj.farClip), (2 * proj.farClip * proj.nearClip) / (proj.nearClip - proj.farClip),
+        0, 0, -1, 0
+    );
 }
 
 void setGLMatrix(GLfloat* glm, Matrix4& m) {
@@ -222,7 +208,9 @@ GLuint VAO, VBO;
 void ChangeSize(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
-	// [TODO] change your aspect ratio
+	// [DO] change your aspect ratio
+    proj.aspect = (float)width / (float)height;
+    setPerspective();
 }
 
 // Render function for display rendering
@@ -230,16 +218,21 @@ void RenderScene(void) {
 	// clear canvas
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-	Matrix4 T, R, S;
-	// [TODO] update translation, rotation and scaling
+	// [DO] update translation, rotation and scaling
+    model cur_model = models[cur_idx];
+    Matrix4 T = translate(cur_model.position),
+            R = rotate(cur_model.rotation),
+            S = scaling(cur_model.scale);
 
-	Matrix4 MVP;
+    // [DO] multiply all the matrix
+    Matrix4 MVP = project_matrix * view_matrix * T * R * S;
 	GLfloat mvp[16];
-
-	// [TODO] multiply all the matrix
+	
 	// row-major ---> column-major
-	setGLMatrix(mvp, MVP);
+	setGLMatrix(mvp, MVP); 
 
+    // [my TODO] don't know the following part
+    
 	// use uniform to send mvp to vertex shader
 	glUniformMatrix4fv(uniform.iLocMVP, 1, GL_FALSE, mvp);
 	for (int i = 0; i < models[cur_idx].shapes.size(); i++) 
@@ -254,23 +247,128 @@ void RenderScene(void) {
 
 void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-	// [TODO] Call back function for keyboard
+	// [DO] Call back function for keyboard
+    if( !(action == GLFW_PRESS) ) return;
+        
+    unsigned int num_models = (unsigned int) models.size();
+        
+    switch (key) {
+        case GLFW_KEY_ESCAPE:
+            exit(0);
+                    
+        case GLFW_KEY_Z:
+            cur_idx = (cur_idx + num_models - 1) % num_models;
+            break;
+                    
+        case GLFW_KEY_X:
+            cur_idx = (cur_idx + 1) % num_models;
+            break;
+            
+        case GLFW_KEY_T:
+            cur_trans_mode = GeoTranslation;
+            break;
+                                                                                
+        case GLFW_KEY_S:
+            cur_trans_mode = GeoScaling;
+            break;
+            
+        case GLFW_KEY_R:
+            cur_trans_mode = GeoRotation;
+            break;
+                                                                                
+        case GLFW_KEY_L:
+//            LightMode = (LightMode + 1) % 3; // [my TODO]
+            break;
+                                                                                
+        case GLFW_KEY_K:
+            cur_trans_mode = LightEdit;
+            break;
+                                                                                
+        case GLFW_KEY_J:
+            cur_trans_mode = ShininessEdit;
+            break;
+            
+    }
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-	// [TODO] scroll up positive, otherwise it would be negtive
+	// [DO] scroll up positive, otherwise it would be negtive
+    const float translation_factor = 0.01;
+    const float scaling_factor = 0.01;
+    const float rotation_factor = 0.2;
+    
+    switch (cur_trans_mode) {
+        case GeoTranslation:
+            models[cur_idx].position.z += yoffset * translation_factor;
+            break;
+                        
+        case GeoScaling:
+            models[cur_idx].scale.z += yoffset * scaling_factor;
+            break;
+                        
+        case GeoRotation:
+            models[cur_idx].rotation.z += ANGLE_DEGREE * yoffset * rotation_factor;
+            break;
+        
+        // [my TODO] cases for lighting
+    }
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
-	// [TODO] mouse press callback function
-		
+	// [DO] mouse press callback function
+    if (button == GLFW_MOUSE_BUTTON_LEFT) {
+        if (action == GLFW_PRESS) {
+            mouse_pressed = true;
+        }
+        if (action == GLFW_RELEASE) {
+            mouse_pressed = false;
+            starting_press_x = -1;
+            starting_press_y = -1;
+        }
+    }
 }
 
 static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
 {
-	// [TODO] cursor position callback function
+	// [DO] cursor position callback function
+    if(!mouse_pressed) return;
+        
+    if(starting_press_x == -1 || starting_press_y == -1) {
+        starting_press_x = xpos;
+        starting_press_y = ypos;
+        return;
+    }
+        
+    int delta_x = xpos - starting_press_x;
+    int delta_y = -(ypos - starting_press_y); // move up: - -> +
+        
+    const float translation_factor = 0.01;
+    const float scaling_factor = 0.01;
+    const float rotation_factor = 0.2;
+    
+    switch (cur_trans_mode) {
+        case GeoTranslation:
+            models[cur_idx].position.x += delta_x * translation_factor;
+            models[cur_idx].position.y += delta_y * translation_factor;
+            break;
+                        
+        case GeoScaling:
+            models[cur_idx].scale.x -= delta_x * scaling_factor;
+            models[cur_idx].scale.y += delta_y * scaling_factor;
+            break;
+                        
+        case GeoRotation:
+            models[cur_idx].rotation.x += ANGLE_DEGREE * delta_y * rotation_factor;
+            models[cur_idx].rotation.y -= ANGLE_DEGREE * delta_x * rotation_factor;
+            break;
+            
+        // [my TODO] cases for lighting
+    }
+    
+    starting_press_x = xpos;
+    starting_press_y = ypos;
 }
 
 void setShaders()
@@ -589,8 +687,11 @@ void setupRC()
 	// OpenGL States and Values
 	glClearColor(0.2, 0.2, 0.2, 1.0);
 	vector<string> model_list{ "../NormalModels/bunny5KN.obj", "../NormalModels/dragon10KN.obj", "../NormalModels/lucy25KN.obj", "../NormalModels/teapot4KN.obj", "../NormalModels/dolphinN.obj"};
-	// [TODO] Load five model at here
-	LoadModels(model_list[cur_idx]);
+	// [DO] Load five model at here
+    for(auto m: model_list)
+    {
+        LoadModels(m);
+    }
 }
 
 void glPrintContextInfo(bool printExtension)
