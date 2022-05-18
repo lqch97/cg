@@ -70,6 +70,9 @@ struct Uniform
     GLint iLocKd;
     GLint iLocKs;
     GLint iLocShininess;
+    
+    // [my TODO] debug
+    GLint iLocFlag;
 };
 Uniform uniform;
 
@@ -152,13 +155,16 @@ struct project_setting
 project_setting proj;
 
 TransMode cur_trans_mode = GeoTranslation;
-int cur_light_mode = 0; // [0, 1, 2] = [direct, point, spot]
+int cur_light_mode = 1; // [0, 1, 2] = [direct, point, spot] [my TODO] set back to 0
 
 Matrix4 view_matrix;
 Matrix4 project_matrix;
 
 int cur_idx = 0; // represent which model should be rendered now
 GLfloat shininess; // material property for specular [my TODO] set shininess
+
+// [my TODO]
+int flag = 0;
 
 
 // [DO] given a translation vector then output a Matrix4 (Translation Matrix)
@@ -345,6 +351,9 @@ void setUniforms() {
     // lighting properties (global)
     glUniform1i(uniform.iLocLightMode, cur_light_mode);
     glUniform3f(uniform.iLocViewPos, main_camera.position.x, main_camera.position.y, main_camera.position.z); // [my TODO] use loc of main carera ?
+    
+    // [my TODO] debug
+    glUniform1i(uniform.iLocFlag, flag);
 }
 
 // Render function for display rendering
@@ -362,14 +371,6 @@ void RenderScene(void) {
         glUniform3fv(uniform.iLocKd, 1, reinterpret_cast<GLfloat*>(&models[cur_idx].shapes[i].material.Kd[0]));
         glUniform3fv(uniform.iLocKs, 1, reinterpret_cast<GLfloat*>(&models[cur_idx].shapes[i].material.Ks[0]));
         glUniform1f(uniform.iLocShininess, shininess);
-        
-        static bool first = false;
-        if(!first && (i == 0)) {
-            cout << models[cur_idx].shapes[i].material.Ka << endl
-                << models[cur_idx].shapes[i].material.Kd << endl
-                << models[cur_idx].shapes[i].material.Ks << endl;
-            first = true;
-        }
         
 		// set glViewport and draw twice ... 
 		glBindVertexArray(models[cur_idx].shapes[i].vao);
@@ -412,6 +413,10 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
                                                                                 
         case GLFW_KEY_L:
             cur_light_mode = (cur_light_mode + 1) % 3; // [my TODO]
+            cout << ((cur_light_mode == 0) ? "Directional" :
+                     (cur_light_mode == 1) ? "Positional" :
+                                             "Spot")
+                 << " Light" << endl;
             break;
                                                                                 
         case GLFW_KEY_K:
@@ -420,6 +425,11 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
                                                                                 
         case GLFW_KEY_J:
             cur_trans_mode = ShininessEdit;
+            break;
+            
+        // [my TODO] debug   
+        case GLFW_KEY_F:
+            flag = (flag + 1) % 4;
             break;
             
     }
@@ -450,7 +460,9 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
             
         // [my TODO] cases for lighting
         case ShininessEdit:
-            shininess = max(shininess + yoffset * shininess_changing_factor, 0);
+            shininess = max(shininess + yoffset * shininess_changing_factor, 1); // [my TODO] max(, 0 or 1) ?
+            // [my TODO] debug
+            cout << shininess << endl;
             break;
             
         case LightEdit:
@@ -460,6 +472,9 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
                 auto& diffuse = (cur_light_mode == 0) ? DL.diffuseIntensity : PL.diffuseIntensity;
                 diffuse += Vector3(yoffset * diffuse_changing_factor, yoffset * diffuse_changing_factor, yoffset * diffuse_changing_factor);
             }
+            // [my TODO] testing code
+//            PL.diffuseIntensity += Vector3(0.1, 0.1, 0.1) * yoffset;
+//            cout << DL.position << endl;
             break;
     }
 }
@@ -520,12 +535,6 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
                                                      SL.position;
             position.x += delta_x * light_translation_factor;
             position.y += delta_y * light_translation_factor;
-            
-            cout << "an iter" << endl;
-            cout << DL.position << endl;
-            cout << PL.position << endl;
-            cout << SL.position << endl << endl;  
-            
             break;
             
         // [my TODO] cases for lighting
@@ -568,6 +577,9 @@ void setILoc(GLint program) {
     uniform.iLocKd = glGetUniformLocation(program, "Kd");
     uniform.iLocKs = glGetUniformLocation(program, "Ks");
     uniform.iLocShininess = glGetUniformLocation(program, "shininess");
+    
+    // var for debug [my TODO]
+    uniform.iLocFlag = glGetUniformLocation(program, "flag");
 }
 
 void setShaders()
@@ -877,7 +889,7 @@ void initParameter()
 	setPerspective();	//set default projection matrix as perspective matrix
     
     // [my TODO] adjust
-    shininess = 1;
+    shininess = 64;
 
 //    VP = 0; // [my TODO]
 
