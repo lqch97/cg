@@ -79,9 +79,13 @@ void main()
     float attenuation = (lightMode == 0) ? 1 / (constant+ linear * dis + quadratic * dis * dis) : 1; // if mode == directional, set to 1
     
     
-    //
+    // calculate spotlight effect
+    float cos_vertex_direction = dot(-light_vector, direction); // cosine of angle between vector from light_pos to vertex_pos and direction
+    float spotlight_effect = (lightMode != 2)                     ? 1: // if not in spotlight mode, set to 1
+                             (cos_vertex_direction < cos(cutoff)) ? 0: // outoff spotlight angle
+                                 pow( max(cos_vertex_direction, 0), exponent ); // spotlight effect
     
-    vertex_color = (flag == 0) ? ambient: (flag == 1) ? attenuation * diffuse : (flag == 2) ? attenuation * specular : ambient + attenuation * (diffuse + specular);
-//    vertex_color = ambient + attenuation * (diffuse + specular);
+    vertex_color = ambient + attenuation * spotlight_effect * (diffuse + specular);
+    vertex_color = (flag == 0) ? ambient: (flag == 1) ? attenuation * diffuse : (flag == 2) ? attenuation * specular : vertex_color; // debug [my TODO]
 }
 
