@@ -39,9 +39,67 @@ enum TransMode
 
 struct Uniform
 {
+    // matirx
 	GLint iLocMVP;
+    GLint iLocMV;
+    GLint iLocV;
+    GLint iLocNormTrnas;
+    
+    // lighting properties (general) [my TODO] GLfloat or GLint?
+    GLint iLocPosition;
+    GLint iLocDiffuseIntensity;
+    GLint iLocAmbientIntensity;
+    GLint iLocSpecularIntensity;
+    
+    // attenuation
+    GLint iLocConstant;
+    GLint iLocLinear;
+    GLint iLocQuadratic;
+    
+    // lighting properties (spot light)
+    GLint iLocDirection;
+    GLint iLocExponent;
+    GLint iLocCutoff;
+    
+    // light properites (global)
+    GLint iLocViewPos;
+    GLint iLocLightMode;
+    
+    // material properties
+    GLint iLocKa;
+    GLint iLocKd;
+    GLint iLocKs;
+    GLint iLocShininess;
 };
 Uniform uniform;
+
+// properties for light source
+struct Light {
+    // general
+    Vector3 position;
+    Vector3 diffuseIntensity;
+    Vector3 ambientIntensity;
+    Vector3 specularIntensity;
+};
+
+struct DirectLight: Light {}; // no new property
+DirectLight DL;
+
+struct PositionLight: Light {
+    // attenuation
+    float constant;
+    float linear;
+    float quadratic;
+};
+PositionLight PL;
+
+struct SpotLight: PositionLight {
+    // for spotlight
+    Vector3 direction;
+    float exponent;
+    float cutoff;
+};
+SpotLight SL;
 
 vector<string> filenames; // .obj filename list
 
@@ -94,11 +152,13 @@ struct project_setting
 project_setting proj;
 
 TransMode cur_trans_mode = GeoTranslation;
+int cur_light_mode = 0; // [0, 1, 2] = [direct, point, spot]
 
 Matrix4 view_matrix;
 Matrix4 project_matrix;
 
 int cur_idx = 0; // represent which model should be rendered now
+GLfloat shininess; // material property for specular [my TODO] set shininess
 
 
 // [DO] given a translation vector then output a Matrix4 (Translation Matrix)
@@ -202,7 +262,7 @@ void setGLMatrix(GLfloat* glm, Matrix4& m) {
 }
 
 // Vertex buffers
-GLuint VAO, VBO;
+//GLuint VAO, VBO; [my TODO] delete var here ?
 
 // Call back function for window reshape
 void ChangeSize(GLFWwindow* window, int width, int height)
@@ -213,30 +273,104 @@ void ChangeSize(GLFWwindow* window, int width, int height)
     setPerspective();
 }
 
-// Render function for display rendering
-void RenderScene(void) {	
-	// clear canvas
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-	// [DO] update translation, rotation and scaling
+// set properties to uniform variable in shader
+void setUniforms() {
+    // [DO] update translation, rotation and scaling
+    // [DO] multiply all the matrix
     model cur_model = models[cur_idx];
     Matrix4 T = translate(cur_model.position),
             R = rotate(cur_model.rotation),
             S = scaling(cur_model.scale);
-
-    // [DO] multiply all the matrix
-    Matrix4 MVP = project_matrix * view_matrix * T * R * S;
-	GLfloat mvp[16];
-	
-	// row-major ---> column-major
-	setGLMatrix(mvp, MVP); 
-
-    // [my TODO] don't know the following part
     
-	// use uniform to send mvp to vertex shader
-	glUniformMatrix4fv(uniform.iLocMVP, 1, GL_FALSE, mvp);
+    // temp variable for passing matrix to shader
+    GLfloat temp[16];
+    
+    // set MV matrix
+    Matrix4 MV =  view_matrix * T * R * S;
+    setGLMatrix(temp, MV); // row-major ---> column-major
+    glUniformMatrix4fv(uniform.iLocMV, 1, GL_FALSE, temp); // use uniform to send mvp to vertex shader
+    
+    // set viewing matrix
+    setGLMatrix(temp, view_matrix); // row-major ---> column-major
+    glUniformMatrix4fv(uniform.iLocV, 1, GL_FALSE, temp);
+    
+    // set MVP matrix
+    Matrix4 MVP = project_matrix * MV;
+    setGLMatrix(temp, MVP); // row-major ---> column-major
+    glUniformMatrix4fv(uniform.iLocMVP, 1, GL_FALSE, temp);
+    
+    // set mormal transformation matrix
+    Matrix4 NORM_TRANS = MV.invert().transpose();
+    setGLMatrix(temp, NORM_TRANS); // row-major ---> column-major
+    glUniformMatrix4fv(uniform.iLocNormTrnas, 1, GL_FALSE, temp);
+    
+    switch (cur_light_mode) {
+        case 0: //directLight
+            // general
+            glUniform3f(uniform.iLocPosition, DL.position.x, DL.position.y, DL.position.z);
+            glUniform3f(uniform.iLocAmbientIntensity, DL.ambientIntensity.x, DL.ambientIntensity.y, DL.ambientIntensity.z);
+            glUniform3f(uniform.iLocDiffuseIntensity, DL.diffuseIntensity.x, DL.diffuseIntensity.y, DL.diffuseIntensity.z);
+            glUniform3f(uniform.iLocSpecularIntensity, DL.specularIntensity.x, DL.specularIntensity.y, DL.specularIntensity.z);
+            break;
+        
+        case 1: //positionLight
+            // general
+            glUniform3f(uniform.iLocPosition, PL.position.x, PL.position.y, PL.position.z);
+            glUniform3f(uniform.iLocAmbientIntensity, PL.ambientIntensity.x, PL.ambientIntensity.y, PL.ambientIntensity.z);
+            glUniform3f(uniform.iLocDiffuseIntensity, PL.diffuseIntensity.x, PL.diffuseIntensity.y, PL.diffuseIntensity.z);
+            glUniform3f(uniform.iLocSpecularIntensity, PL.specularIntensity.x, PL.specularIntensity.y, PL.specularIntensity.z);
+            // attenuation
+            glUniform1f(uniform.iLocConstant, PL.constant);
+            glUniform1f(uniform.iLocLinear, PL.linear);
+            glUniform1f(uniform.iLocQuadratic, PL.quadratic);
+            break;
+            
+        case 2: // spotLight
+            // general
+            glUniform3f(uniform.iLocPosition, SL.position.x, SL.position.y, SL.position.z);
+            glUniform3f(uniform.iLocAmbientIntensity, SL.ambientIntensity.x, SL.ambientIntensity.y, SL.ambientIntensity.z);
+            glUniform3f(uniform.iLocDiffuseIntensity, SL.diffuseIntensity.x, SL.diffuseIntensity.y, SL.diffuseIntensity.z);
+            glUniform3f(uniform.iLocSpecularIntensity, SL.specularIntensity.x, SL.specularIntensity.y, SL.specularIntensity.z);
+            // attenuation
+            glUniform1f(uniform.iLocConstant, SL.constant);
+            glUniform1f(uniform.iLocLinear, SL.linear);
+            glUniform1f(uniform.iLocQuadratic, SL.quadratic);
+            // spotlight specific setting
+            glUniform3f(uniform.iLocDirection, SL.direction.x, SL.direction.y, SL.direction.z);
+            glUniform1f(uniform.iLocExponent, SL.exponent);
+            glUniform1f(uniform.iLocCutoff, SL.cutoff); 
+            break;
+    }
+    
+    // lighting properties (global)
+    glUniform1i(uniform.iLocLightMode, cur_light_mode);
+    glUniform3f(uniform.iLocViewPos, main_camera.position.x, main_camera.position.y, main_camera.position.z); // [my TODO] use loc of main carera ?
+}
+
+// Render function for display rendering
+void RenderScene(void) {	
+	// clear canvas
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    
+    setUniforms();
+    
+    // [my TODO] don't know the following part
 	for (int i = 0; i < models[cur_idx].shapes.size(); i++) 
 	{
+        // material properties [my TODO] ka[0]
+        glUniform3fv(uniform.iLocKa, 1, reinterpret_cast<GLfloat*>(&models[cur_idx].shapes[i].material.Ka[0]));
+        glUniform3fv(uniform.iLocKd, 1, reinterpret_cast<GLfloat*>(&models[cur_idx].shapes[i].material.Kd[0]));
+        glUniform3fv(uniform.iLocKs, 1, reinterpret_cast<GLfloat*>(&models[cur_idx].shapes[i].material.Ks[0]));
+        glUniform1f(uniform.iLocShininess, shininess);
+        
+        static bool first = false;
+        if(!first && (i == 0)) {
+            cout << models[cur_idx].shapes[i].material.Ka << endl
+                << models[cur_idx].shapes[i].material.Kd << endl
+                << models[cur_idx].shapes[i].material.Ks << endl;
+            first = true;
+        }
+        
 		// set glViewport and draw twice ... 
 		glBindVertexArray(models[cur_idx].shapes[i].vao);
 		glDrawArrays(GL_TRIANGLES, 0, models[cur_idx].shapes[i].vertex_count);
@@ -277,7 +411,7 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
             break;
                                                                                 
         case GLFW_KEY_L:
-//            LightMode = (LightMode + 1) % 3; // [my TODO]
+            cur_light_mode = (cur_light_mode + 1) % 3; // [my TODO]
             break;
                                                                                 
         case GLFW_KEY_K:
@@ -297,6 +431,9 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
     const float translation_factor = 0.01;
     const float scaling_factor = 0.01;
     const float rotation_factor = 0.2;
+    const float shininess_changing_factor = 2.0;
+    const float cutoff_changing_factor = 0.5;
+    const float diffuse_changing_factor = 0.1;
     
     switch (cur_trans_mode) {
         case GeoTranslation:
@@ -310,8 +447,20 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
         case GeoRotation:
             models[cur_idx].rotation.z += ANGLE_DEGREE * yoffset * rotation_factor;
             break;
-        
+            
         // [my TODO] cases for lighting
+        case ShininessEdit:
+            shininess = max(shininess + yoffset * shininess_changing_factor, 0);
+            break;
+            
+        case LightEdit:
+            if(cur_light_mode == 2) { // spotlight mode
+                SL.cutoff +=  yoffset * cutoff_changing_factor * ANGLE_DEGREE; // [my TODO] min, max degree ?
+            } else {
+                auto& diffuse = (cur_light_mode == 0) ? DL.diffuseIntensity : PL.diffuseIntensity;
+                diffuse += Vector3(yoffset * diffuse_changing_factor, yoffset * diffuse_changing_factor, yoffset * diffuse_changing_factor);
+            }
+            break;
     }
 }
 
@@ -347,6 +496,7 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
     const float translation_factor = 0.01;
     const float scaling_factor = 0.01;
     const float rotation_factor = 0.2;
+    const float light_translation_factor = 0.01;
     
     switch (cur_trans_mode) {
         case GeoTranslation:
@@ -364,11 +514,60 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
             models[cur_idx].rotation.y -= ANGLE_DEGREE * delta_x * rotation_factor;
             break;
             
+        case LightEdit:
+            auto& position = (cur_light_mode == 0) ? DL.position:
+                             (cur_light_mode == 1) ? PL.position:
+                                                     SL.position;
+            position.x += delta_x * light_translation_factor;
+            position.y += delta_y * light_translation_factor;
+            
+            cout << "an iter" << endl;
+            cout << DL.position << endl;
+            cout << PL.position << endl;
+            cout << SL.position << endl << endl;  
+            
+            break;
+            
         // [my TODO] cases for lighting
     }
     
     starting_press_x = xpos;
     starting_press_y = ypos;
+}
+
+void setILoc(GLint program) {
+    
+    // matrix
+    uniform.iLocMVP = glGetUniformLocation(program, "mvp");
+    uniform.iLocMV = glGetUniformLocation(program, "mv");
+    uniform.iLocV = glGetUniformLocation(program, "v");
+    uniform.iLocNormTrnas = glGetUniformLocation(program, "normTrans");
+
+    // general lighting properties
+    uniform.iLocPosition = glGetUniformLocation(program, "position");
+    uniform.iLocDiffuseIntensity = glGetUniformLocation(program, "diffuseIntensity");
+    uniform.iLocAmbientIntensity = glGetUniformLocation(program, "ambientIntensity");
+    uniform.iLocSpecularIntensity = glGetUniformLocation(program, "specularIntensity");
+
+    // attenuation
+    uniform.iLocConstant = glGetUniformLocation(program, "constant"); // shiniess ?
+    uniform.iLocLinear = glGetUniformLocation(program, "linear");
+    uniform.iLocQuadratic = glGetUniformLocation(program, "quadratic");
+
+    // for spotlight
+    uniform.iLocDirection = glGetUniformLocation(program, "direction");
+    uniform.iLocExponent = glGetUniformLocation(program, "exponent");
+    uniform.iLocCutoff = glGetUniformLocation(program, "cutoff");
+    
+    // lighting properties (global)
+    uniform.iLocViewPos = glGetUniformLocation(program, "viewPos");
+    uniform.iLocLightMode = glGetUniformLocation(program, "lightMode");
+    
+    // material properties
+    uniform.iLocKa = glGetUniformLocation(program, "Ka");
+    uniform.iLocKd = glGetUniformLocation(program, "Kd");
+    uniform.iLocKs = glGetUniformLocation(program, "Ks");
+    uniform.iLocShininess = glGetUniformLocation(program, "shininess");
 }
 
 void setShaders()
@@ -430,7 +629,7 @@ void setShaders()
 	glDeleteShader(v);
 	glDeleteShader(f);
 
-	uniform.iLocMVP = glGetUniformLocation(p, "mvp");
+    setILoc(p);
 
 	if (success)
 		glUseProgram(p);
@@ -676,6 +875,36 @@ void initParameter()
 
 	setViewingMatrix();
 	setPerspective();	//set default projection matrix as perspective matrix
+    
+    // [my TODO] adjust
+    shininess = 1;
+
+//    VP = 0; // [my TODO]
+
+    DL.position = Vector3(1.0, 1.0, 1.0);
+    DL.ambientIntensity = Vector3(0.15, 0.15, 0.15);
+    DL.diffuseIntensity = Vector3(1.0, 1.0, 1.0);
+    DL.specularIntensity = Vector3(1.0, 1.0, 1.0);
+
+    PL.position = Vector3(0.0, 2.0, 1.0);
+    PL.ambientIntensity = Vector3(0.15, 0.15, 0.15);
+    PL.diffuseIntensity = Vector3(1.0, 1.0, 1.0);
+    PL.specularIntensity = Vector3(1.0, 1.0, 1.0);
+    PL.constant = 0.01;
+    PL.linear = 0.8;
+    PL.quadratic = 0.1;
+
+    SL.position = Vector3(0.0, 0.0, 2.0);
+    SL.ambientIntensity = Vector3(0.15, 0.15, 0.15);
+    SL.diffuseIntensity = Vector3(1.0, 1.0, 1.0);
+    SL.specularIntensity = Vector3(1.0, 1.0, 1.0);
+    SL.constant = 0.05;
+    SL.linear = 0.3;
+    SL.quadratic = 0.6;
+    SL.direction = Vector3(0.0, 0.0, -1.0);
+    SL.exponent = 50.0;
+    SL.cutoff = 30 * ANGLE_DEGREE;
+    // [] part end
 }
 
 void setupRC()
