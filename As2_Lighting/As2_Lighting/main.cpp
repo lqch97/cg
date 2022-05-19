@@ -22,6 +22,12 @@ using namespace std;
 // Default window size
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 800;
+
+// window size in pixel
+int window_width_in_pixel;
+int window_height_in_pixel;
+
+// Basic unit for angle degree
 const float ANGLE_DEGREE = 3.14159265359 / 180;
 
 bool mouse_pressed = false;
@@ -164,7 +170,7 @@ int cur_idx = 0; // represent which model should be rendered now
 GLfloat shininess; // material property for specular [my TODO] set shininess
 
 // [my TODO]
-int flag = 0;
+int flag = 3;
 
 
 // [DO] given a translation vector then output a Matrix4 (Translation Matrix)
@@ -273,10 +279,14 @@ void setGLMatrix(GLfloat* glm, Matrix4& m) {
 // Call back function for window reshape
 void ChangeSize(GLFWwindow* window, int width, int height)
 {
-	glViewport(0, 0, width, height);
+//	glViewport(0, 0, width, height); [my TODO] delete this line
 	// [DO] change your aspect ratio
-    proj.aspect = (float)width / (float)height;
+    proj.aspect = ( (float)window_width_in_pixel / 2 ) / (float)window_height_in_pixel; // [my TODO] width of aspect ratio
     setPerspective();
+
+    // reset window size
+    window_width_in_pixel = width;
+    window_height_in_pixel = height;
 }
 
 // set properties to uniform variable in shader
@@ -366,17 +376,22 @@ void RenderScene(void) {
     // [my TODO] don't know the following part
 	for (int i = 0; i < models[cur_idx].shapes.size(); i++) 
 	{
-        // material properties [my TODO] ka[0]
+        // material properties
         glUniform3fv(uniform.iLocKa, 1, reinterpret_cast<GLfloat*>(&models[cur_idx].shapes[i].material.Ka[0]));
         glUniform3fv(uniform.iLocKd, 1, reinterpret_cast<GLfloat*>(&models[cur_idx].shapes[i].material.Kd[0]));
         glUniform3fv(uniform.iLocKs, 1, reinterpret_cast<GLfloat*>(&models[cur_idx].shapes[i].material.Ks[0]));
         glUniform1f(uniform.iLocShininess, shininess);
         
-		// set glViewport and draw twice ... 
+		// draw left hand side viewport in vertex lighting
+        glViewport(0, 0, (GLsizei)(window_width_in_pixel / 2), window_height_in_pixel);
 		glBindVertexArray(models[cur_idx].shapes[i].vao);
 		glDrawArrays(GL_TRIANGLES, 0, models[cur_idx].shapes[i].vertex_count);
+        
+        // draw right hand side viewport in pixel lighting // [my TODO] not done
+        glViewport((GLsizei)(window_width_in_pixel / 2), 0, (GLsizei)(window_width_in_pixel / 2), window_height_in_pixel);
+        glBindVertexArray(models[cur_idx].shapes[i].vao);
+        glDrawArrays(GL_TRIANGLES, 0, models[cur_idx].shapes[i].vertex_count);
 	}
-
 }
 
 
@@ -413,7 +428,8 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
                                                                                 
         case GLFW_KEY_L:
             cur_light_mode = (cur_light_mode + 1) % 3; // [my TODO]
-            cout << ((cur_light_mode == 0) ? "Directional" :
+            cout << "Light Mode: "
+                 << ((cur_light_mode == 0) ? "Directional" :
                      (cur_light_mode == 1) ? "Positional" :
                                              "Spot")
                  << " Light" << endl;
@@ -472,9 +488,6 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
                 auto& diffuse = (cur_light_mode == 0) ? DL.diffuseIntensity : PL.diffuseIntensity;
                 diffuse += Vector3(yoffset * diffuse_changing_factor, yoffset * diffuse_changing_factor, yoffset * diffuse_changing_factor);
             }
-            // [my TODO] testing code
-//            PL.diffuseIntensity += Vector3(0.1, 0.1, 0.1) * yoffset;
-//            cout << DL.position << endl;
             break;
     }
 }
@@ -879,7 +892,7 @@ void initParameter()
 	proj.nearClip = 0.001;
 	proj.farClip = 100.0;
 	proj.fovy = 80;
-	proj.aspect = (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT;
+	proj.aspect = (float)window_width_in_pixel / (float)window_height_in_pixel;
 
 	main_camera.position = Vector3(0.0f, 0.0f, 2.0f);
 	main_camera.center = Vector3(0.0f, 0.0f, 0.0f);
@@ -968,7 +981,7 @@ int main(int argc, char **argv)
 
     
     // create window
-	GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Student ID HW2", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "110062653 HW2", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -977,6 +990,9 @@ int main(int argc, char **argv)
     }
     glfwMakeContextCurrent(window);
     
+    // set window size in pixel
+    glfwGetFramebufferSize(window, &window_width_in_pixel, &window_height_in_pixel);
+
     
     // load OpenGL function pointer
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
