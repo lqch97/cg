@@ -46,13 +46,17 @@ enum TransMode
 
 struct Uniform
 {
+    // flags to control the flow of shading
+    GLint iLocLightMode;
+    GLint iLocShadingMode;
+    
     // matirx
 	GLint iLocMVP;
     GLint iLocMV;
     GLint iLocV;
     GLint iLocNormTrnas;
     
-    // lighting properties (general) [my TODO] GLfloat or GLint?
+    // lighting properties (general)
     GLint iLocPosition;
     GLint iLocDiffuseIntensity;
     GLint iLocAmbientIntensity;
@@ -68,18 +72,13 @@ struct Uniform
     GLint iLocExponent;
     GLint iLocCutoff;
     
-    // light properites (global)
-    GLint iLocViewPos;
-    GLint iLocLightMode;
-    GLint iLocShadingMode;
-    
     // material properties
     GLint iLocKa;
     GLint iLocKd;
     GLint iLocKs;
     GLint iLocShininess;
     
-    // [my TODO] debug
+    // [my TODO] for debug, delete later
     GLint iLocFlag;
 };
 Uniform uniform;
@@ -163,7 +162,7 @@ struct project_setting
 project_setting proj;
 
 TransMode cur_trans_mode = GeoTranslation;
-int cur_light_mode = 1; // [0, 1, 2] = [direct, point, spot], the light mode be used now
+int cur_light_mode = 1; // [0, 1, 2] = [direct, point, spot], the light mode be used now [myTODO] need a better representation
 int cur_idx = 0; // represent which model should be rendered now
 
 Matrix4 view_matrix;
@@ -276,16 +275,12 @@ void setGLMatrix(GLfloat* glm, Matrix4& m) {
 	glm[3] = m[12];  glm[7] = m[13];  glm[11] = m[14];   glm[15] = m[15];
 }
 
-// Vertex buffers
-//GLuint VAO, VBO; [my TODO] delete var here ?
-
 // Call back function for window reshape
 void ChangeSize(GLFWwindow* window, int width, int height)
 {
-//	glViewport(0, 0, width, height); [my TODO] delete this line
 	// [DO] change your aspect ratio
     proj.aspect = (window_width_in_pixel > window_height_in_pixel) ?
-                    ((float)window_width_in_pixel / 2) / (float)window_height_in_pixel: // [my TODO] width of aspect ratio 
+                    ((float)window_width_in_pixel / 2) / (float)window_height_in_pixel: // [my TODO] width of aspect ratio
                     ((float)window_height_in_pixel / 2) / (float)window_width_in_pixel;
     setPerspective();
 
@@ -363,9 +358,8 @@ void setUniforms() {
             break;
     }
     
-    // lighting properties (global)
+    // set light mode
     glUniform1i(uniform.iLocLightMode, cur_light_mode);
-    glUniform3f(uniform.iLocViewPos, main_camera.position.x, main_camera.position.y, main_camera.position.z); // [my TODO] use loc of main carera ?
     
     // [my TODO] debug
     glUniform1i(uniform.iLocFlag, flag);
@@ -374,31 +368,29 @@ void setUniforms() {
 // Render function for display rendering
 void RenderScene(void) {	
 	// clear canvas
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     
     setUniforms();
     
-    // [my TODO] don't know the following part
-	for (int i = 0; i < models[cur_idx].shapes.size(); i++) 
-	{
+    for (int i = 0; i < models[cur_idx].shapes.size(); i++) {
         // material properties
         glUniform3fv(uniform.iLocKa, 1, reinterpret_cast<GLfloat*>(&models[cur_idx].shapes[i].material.Ka[0]));
         glUniform3fv(uniform.iLocKd, 1, reinterpret_cast<GLfloat*>(&models[cur_idx].shapes[i].material.Kd[0]));
         glUniform3fv(uniform.iLocKs, 1, reinterpret_cast<GLfloat*>(&models[cur_idx].shapes[i].material.Ks[0]));
         glUniform1f(uniform.iLocShininess, shininess);
-        
-		// draw left hand side viewport in vertex lighting
+                
+        // draw left hand side viewport in vertex lighting
         glUniform1i(uniform.iLocShadingMode, 0); // set shading mode, 0 => vertex shading
         glViewport(0, 0, (GLsizei)(window_width_in_pixel / 2), window_height_in_pixel);
-		glBindVertexArray(models[cur_idx].shapes[i].vao);
-		glDrawArrays(GL_TRIANGLES, 0, models[cur_idx].shapes[i].vertex_count);
-        
-        // draw right hand side viewport in pixel lighting // [my TODO] not done
+        glBindVertexArray(models[cur_idx].shapes[i].vao);
+        glDrawArrays(GL_TRIANGLES, 0, models[cur_idx].shapes[i].vertex_count);
+                
+        // draw right hand side viewport in pixel lighting
         glUniform1i(uniform.iLocShadingMode, 1); // set shading mode, 1 => fragment shading
         glViewport((GLsizei)(window_width_in_pixel / 2), 0, (GLsizei)(window_width_in_pixel / 2), window_height_in_pixel);
         glBindVertexArray(models[cur_idx].shapes[i].vao);
         glDrawArrays(GL_TRIANGLES, 0, models[cur_idx].shapes[i].vertex_count);
-	}
+    }
 }
 
 
@@ -434,7 +426,7 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
             break;
                                                                                 
         case GLFW_KEY_L:
-            cur_light_mode = (cur_light_mode + 1) % 3; // [my TODO]
+            cur_light_mode = (cur_light_mode + 1) % 3;
             cout << "Light Mode: "
                  << ((cur_light_mode == 0) ? "Directional" :
                      (cur_light_mode == 1) ? "Positional" :
@@ -481,11 +473,8 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
             models[cur_idx].rotation.z += ANGLE_DEGREE * yoffset * rotation_factor;
             break;
             
-        // [my TODO] cases for lighting
         case ShininessEdit:
-            shininess = max(shininess + yoffset * shininess_changing_factor, 1); // [my TODO] max(, 0 or 1) ?
-            // [my TODO] debug
-            cout << shininess << endl;
+            shininess = max(shininess + yoffset * shininess_changing_factor, 1);
             break;
             
         case LightEdit:
@@ -556,8 +545,6 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
             position.x += delta_x * light_translation_factor;
             position.y += delta_y * light_translation_factor;
             break;
-            
-        // [my TODO] cases for lighting
     }
     
     starting_press_x = xpos;
@@ -565,6 +552,10 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
 }
 
 void setILoc(GLint program) {
+    
+    // flags to control the flow of shading
+    uniform.iLocLightMode = glGetUniformLocation(program, "lightMode");
+    uniform.iLocShadingMode = glGetUniformLocation(program, "shadingMode");
     
     // matrix
     uniform.iLocMVP = glGetUniformLocation(program, "mvp");
@@ -587,11 +578,6 @@ void setILoc(GLint program) {
     uniform.iLocDirection = glGetUniformLocation(program, "direction");
     uniform.iLocExponent = glGetUniformLocation(program, "exponent");
     uniform.iLocCutoff = glGetUniformLocation(program, "cutoff");
-    
-    // lighting properties (global)
-    uniform.iLocViewPos = glGetUniformLocation(program, "viewPos");
-    uniform.iLocLightMode = glGetUniformLocation(program, "lightMode");
-    uniform.iLocShadingMode = glGetUniformLocation(program, "shadingMode");
     
     // material properties
     uniform.iLocKa = glGetUniformLocation(program, "Ka");
@@ -892,7 +878,7 @@ void LoadModels(string model_path)
 
 void initParameter()
 {
-	// [TODO] Setup some parameters if you need
+	// [DO] Setup some parameters if you need
 	proj.left = -1;
 	proj.right = 1;
 	proj.top = 1;
@@ -909,10 +895,8 @@ void initParameter()
 	setViewingMatrix();
 	setPerspective();	//set default projection matrix as perspective matrix
     
-    // [my TODO] adjust
+    // properties for lighting
     shininess = 64;
-
-//    VP = 0; // [my TODO]
 
     DL.position = Vector3(1.0, 1.0, 1.0);
     DL.ambientIntensity = Vector3(0.15, 0.15, 0.15);
@@ -937,21 +921,19 @@ void initParameter()
     SL.direction = Vector3(0.0, 0.0, -1.0);
     SL.exponent = 50.0;
     SL.cutoff = 30 * ANGLE_DEGREE;
-    // [] part end
 }
 
 void setupRC()
 {
-	// setup shaders
-	setShaders();
-	initParameter();
+    // setup shaders
+    setShaders();
+    initParameter();
 
-	// OpenGL States and Values
-	glClearColor(0.2, 0.2, 0.2, 1.0);
-	vector<string> model_list{ "../NormalModels/bunny5KN.obj", "../NormalModels/dragon10KN.obj", "../NormalModels/lucy25KN.obj", "../NormalModels/teapot4KN.obj", "../NormalModels/dolphinN.obj"};
-	// [DO] Load five model at here
-    for(auto m: model_list)
-    {
+    // OpenGL States and Values
+    glClearColor(0.2, 0.2, 0.2, 1.0);
+    vector<string> model_list{ "../NormalModels/bunny5KN.obj", "../NormalModels/dragon10KN.obj", "../NormalModels/lucy25KN.obj", "../NormalModels/teapot4KN.obj", "../NormalModels/dolphinN.obj"};
+    // [DO] Load five model at here
+    for(auto m: model_list) {
         LoadModels(m);
     }
 }

@@ -9,16 +9,15 @@ out vec3 vertex_color;
 out vec3 vertex_normal;
 out vec3 vertex_position;
 
+// flags to control the flow of shading
+uniform int lightMode;
+uniform int shadingMode;
+
 // transformation matrix
 uniform mat4 mvp;
 uniform mat4 mv;
 uniform mat4 v; // viewing matrix
 uniform mat4 normTrans;
-
-// light properites (global)
-uniform vec3 viewPos; // [my TODO] need to be deleted
-uniform int lightMode;
-uniform int shadingMode;
 
 // lighting properties (general)
 uniform vec3 position;
@@ -33,7 +32,7 @@ uniform float quadratic;
 
 // lighting properties (spot light)
 uniform vec3 direction;
-uniform float exponent; // [my TODO] int for float ?
+uniform float exponent;
 uniform float cutoff;
 
 // material properties
@@ -56,7 +55,7 @@ void main()
     vertex_normal = normalize( (normTrans * vec4(aNormal, 1.0)).xyz );
     
     
-    // if shading mode is in fragment shading, not needing to calculate vertex_color
+    // if shading mode is in fragment shading, not needing to calculated vertex_color
     // return directly
     if(shadingMode == 1) {
         vertex_position = (mv * vec4(aPos, 1.0)).xyz;
@@ -94,12 +93,14 @@ void main()
     float cos_vertex_direction = dot(-light_vector, direction); // cosine of angle between vector from light_pos to vertex_pos and direction
     float spotlight_effect = (lightMode != 2)                     ? 1: // if not in spotlight mode, set to 1
                              (cos_vertex_direction < cos(cutoff)) ? 0: // outoff spotlight angle
-                                 pow( max(cos_vertex_direction, 0), exponent ); // spotlight effect
+                                                                    pow( max(cos_vertex_direction, 0), exponent ); // spotlight effect
     
     vertex_color = ambient + attenuation * spotlight_effect * (diffuse + specular);
+    
+    // [my TODO] the flollowing is for debugging, delete later
     vertex_color = (flag == 0) ? ambient:
                    (flag == 1) ? attenuation * diffuse :
                    (flag == 2) ? attenuation * specular :
-                                 vertex_color; // debug [my TODO]
+                                 vertex_color;
 }
 

@@ -11,8 +11,7 @@ uniform mat4 mv;
 uniform mat4 v; // viewing matrix
 uniform mat4 normTrans;
 
-// light properites (global)
-uniform vec3 viewPos; // [my TODO] need to be deleted
+// flags to control the flow of shading
 uniform int lightMode;
 uniform int shadingMode;
 
@@ -29,7 +28,7 @@ uniform float quadratic;
 
 // lighting properties (spot light)
 uniform vec3 direction;
-uniform float exponent; // [my TODO] int for float ?
+uniform float exponent;
 uniform float cutoff;
 
 // material properties
@@ -45,8 +44,8 @@ uniform int flag;
 void main() {
 	// [TODO]
     
-    // if in fragment shading mode,
-    // directly set fragmnet color to be color be calculate by vertex shader
+    // if in vertex shading mode,
+    // directly set fragmnet color to be color hase been calculate by vertex shader
     if (shadingMode == 0) {
         FragColor = vec4(vertex_color, 1.0);
         return;
@@ -84,10 +83,12 @@ void main() {
                                  pow( max(cos_vertex_direction, 0), exponent ); // spotlight effect
     
     vec3 result = ambient + attenuation * spotlight_effect * (diffuse + specular);
+    
+    // [my TODO] the flollowing is for debugging, delete later
     result = (flag == 0) ? ambient:
              (flag == 1) ? attenuation * diffuse :
              (flag == 2) ? attenuation * specular :
-                           result; // debug [my TODO]
+                           result;
     
     FragColor = vec4(result, 1.0);
 }
