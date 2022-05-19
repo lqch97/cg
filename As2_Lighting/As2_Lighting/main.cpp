@@ -30,6 +30,7 @@ int window_height_in_pixel;
 // Basic unit for angle degree
 const float ANGLE_DEGREE = 3.14159265359 / 180;
 
+// variables for mouse control
 bool mouse_pressed = false;
 int starting_press_x = -1;
 int starting_press_y = -1;
@@ -70,6 +71,7 @@ struct Uniform
     // light properites (global)
     GLint iLocViewPos;
     GLint iLocLightMode;
+    GLint iLocShadingMode;
     
     // material properties
     GLint iLocKa;
@@ -161,15 +163,16 @@ struct project_setting
 project_setting proj;
 
 TransMode cur_trans_mode = GeoTranslation;
-int cur_light_mode = 1; // [0, 1, 2] = [direct, point, spot] [my TODO] set back to 0
+int cur_light_mode = 1; // [0, 1, 2] = [direct, point, spot], the light mode be used now
+int cur_idx = 0; // represent which model should be rendered now
 
 Matrix4 view_matrix;
 Matrix4 project_matrix;
 
-int cur_idx = 0; // represent which model should be rendered now
-GLfloat shininess; // material property for specular [my TODO] set shininess
+// material property for specular
+GLfloat shininess;
 
-// [my TODO]
+// [my TODO] for debuggin, delete later
 int flag = 3;
 
 
@@ -281,7 +284,9 @@ void ChangeSize(GLFWwindow* window, int width, int height)
 {
 //	glViewport(0, 0, width, height); [my TODO] delete this line
 	// [DO] change your aspect ratio
-    proj.aspect = ( (float)window_width_in_pixel / 2 ) / (float)window_height_in_pixel; // [my TODO] width of aspect ratio
+    proj.aspect = (window_width_in_pixel > window_height_in_pixel) ?
+                    ((float)window_width_in_pixel / 2) / (float)window_height_in_pixel: // [my TODO] width of aspect ratio 
+                    ((float)window_height_in_pixel / 2) / (float)window_width_in_pixel;
     setPerspective();
 
     // reset window size
@@ -383,11 +388,13 @@ void RenderScene(void) {
         glUniform1f(uniform.iLocShininess, shininess);
         
 		// draw left hand side viewport in vertex lighting
+        glUniform1i(uniform.iLocShadingMode, 0); // set shading mode, 0 => vertex shading
         glViewport(0, 0, (GLsizei)(window_width_in_pixel / 2), window_height_in_pixel);
 		glBindVertexArray(models[cur_idx].shapes[i].vao);
 		glDrawArrays(GL_TRIANGLES, 0, models[cur_idx].shapes[i].vertex_count);
         
         // draw right hand side viewport in pixel lighting // [my TODO] not done
+        glUniform1i(uniform.iLocShadingMode, 1); // set shading mode, 1 => fragment shading
         glViewport((GLsizei)(window_width_in_pixel / 2), 0, (GLsizei)(window_width_in_pixel / 2), window_height_in_pixel);
         glBindVertexArray(models[cur_idx].shapes[i].vao);
         glDrawArrays(GL_TRIANGLES, 0, models[cur_idx].shapes[i].vertex_count);
@@ -584,6 +591,7 @@ void setILoc(GLint program) {
     // lighting properties (global)
     uniform.iLocViewPos = glGetUniformLocation(program, "viewPos");
     uniform.iLocLightMode = glGetUniformLocation(program, "lightMode");
+    uniform.iLocShadingMode = glGetUniformLocation(program, "shadingMode");
     
     // material properties
     uniform.iLocKa = glGetUniformLocation(program, "Ka");

@@ -7,6 +7,7 @@ layout (location = 2) in vec3 aNormal;
 // output datas
 out vec3 vertex_color;
 out vec3 vertex_normal;
+out vec3 vertex_position;
 
 // transformation matrix
 uniform mat4 mvp;
@@ -17,6 +18,7 @@ uniform mat4 normTrans;
 // light properites (global)
 uniform vec3 viewPos; // [my TODO] need to be deleted
 uniform int lightMode;
+uniform int shadingMode;
 
 // lighting properties (general)
 uniform vec3 position;
@@ -53,14 +55,23 @@ void main()
     // normal transformation
     vertex_normal = normalize( (normTrans * vec4(aNormal, 1.0)).xyz );
     
+    
+    // if shading mode is in fragment shading, not needing to calculate vertex_color
+    // return directly
+    if(shadingMode == 1) {
+        vertex_position = (mv * vec4(aPos, 1.0)).xyz;
+        return;
+    }
+    
+    
     // calculate light_position, viewing_position, vertex_position
+    vertex_position = (mv * vec4(aPos, 1.0)).xyz;
     vec3 light_pos = (v * vec4(position, 1.0)).xyz;
-    vec3 vertex_pos = (mv * vec4(aPos, 1.0)).xyz;
     vec3 view_pos = vec3(0, 0, 0); // because we are in viewing space
     
     // calculate light_vector, viewing_vector, halfway_vector
-    vec3 light_vector = (lightMode == 0) ? normalize( light_pos ) : normalize( light_pos - vertex_pos ); // if mode == directional, set as light_pos - origin
-    vec3 view_vector = normalize( view_pos - vertex_pos );
+    vec3 light_vector = (lightMode == 0) ? normalize( light_pos ) : normalize( light_pos - vertex_position ); // if mode == directional, set as light_pos - origin
+    vec3 view_vector = normalize( view_pos - vertex_position );
     vec3 halfway_vector = normalize( light_vector + view_vector );
     
     // calculate ambient
@@ -75,7 +86,7 @@ void main()
     vec3 specular = specular_rate * specularIntensity * Ks;
     
     // attenuation
-    float dis = length(light_pos - vertex_pos); // distance
+    float dis = length(light_pos - vertex_position); // distance
     float attenuation = (lightMode == 0) ? 1 / (constant+ linear * dis + quadratic * dis * dis) : 1; // if mode == directional, set to 1
     
     
@@ -86,6 +97,9 @@ void main()
                                  pow( max(cos_vertex_direction, 0), exponent ); // spotlight effect
     
     vertex_color = ambient + attenuation * spotlight_effect * (diffuse + specular);
-    vertex_color = (flag == 0) ? ambient: (flag == 1) ? attenuation * diffuse : (flag == 2) ? attenuation * specular : vertex_color; // debug [my TODO]
+    vertex_color = (flag == 0) ? ambient:
+                   (flag == 1) ? attenuation * diffuse :
+                   (flag == 2) ? attenuation * specular :
+                                 vertex_color; // debug [my TODO]
 }
 
