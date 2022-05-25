@@ -279,9 +279,7 @@ void setGLMatrix(GLfloat* glm, Matrix4& m) {
 void ChangeSize(GLFWwindow* window, int width, int height)
 {
 	// [DO] change your aspect ratio
-    proj.aspect = (window_width_in_pixel > window_height_in_pixel) ?
-                    ((float)window_width_in_pixel / 2) / (float)window_height_in_pixel: // [my TODO] width of aspect ratio
-                    ((float)window_height_in_pixel / 2) / (float)window_width_in_pixel;
+    proj.aspect = ((float)window_width_in_pixel / 2) / (float)window_height_in_pixel: // [my TODO] width of aspect ratio
     setPerspective();
 
     // reset window size
