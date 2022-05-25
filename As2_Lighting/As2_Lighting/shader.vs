@@ -86,7 +86,7 @@ void main()
     
     // attenuation
     float dis = length(light_pos - vertex_position); // distance
-    float attenuation = (lightMode == 0) ? 1 / (constant+ linear * dis + quadratic * dis * dis) : 1; // if mode == directional, set to 1
+    float attenuation = (lightMode == 0) ? 1 : 1 / (constant + linear * dis + quadratic * dis * dis); // if mode == directional, set to 1
     
     
     // calculate spotlight effect
@@ -103,4 +103,3 @@ void main()
                    (flag == 2) ? attenuation * specular :
                                  vertex_color;
 }
-
