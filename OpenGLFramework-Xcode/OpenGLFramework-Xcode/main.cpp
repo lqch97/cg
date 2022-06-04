@@ -1,4 +1,4 @@
-#include <iostream>
+#include <iostream> 
 #include <fstream>
 #include <string>
 #include <vector>
@@ -126,7 +126,7 @@ enum ProjMode
 };
 ProjMode cur_proj_mode = Orthogonal;
 TransMode cur_trans_mode = GeoTranslation;
-int cur_light_mode = 1; // [0, 1, 2] = [direct, point, spot], the light mode be used now
+int cur_light_mode = 0; // [0, 1, 2] = [direct, point, spot], the light mode be used now
 int cur_idx = 0; // represent which model should be rendered now
 
 Matrix4 view_matrix;
@@ -540,7 +540,7 @@ void RenderScene(int per_vertex_or_per_pixel) {
         auto curr_model = models[cur_idx];
         if(models[cur_idx].shapes[i].material.isEye) {
             auto offset = curr_model.shapes[i].material.offsets[curr_model.cur_eye_offset_idx];
-            TEX_TRANS = translate(Vector3(offset.x, offset.y, 0));
+            TEX_TRANS = translate(Vector3(offset.x, offset.y, 0)); // working
         } else {
             TEX_TRANS = translate(Vector3(0, 0, 0));
         }
@@ -649,11 +649,11 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
         case GLFW_KEY_B:
             min_linear = !min_linear;
             break;
-        case GLFW_KEY_LEFT:
+        case GLFW_KEY_RIGHT:
             models[cur_idx].cur_eye_offset_idx =
                 (models[cur_idx].cur_eye_offset_idx + 1) % models[cur_idx].max_eye_offset; // [my]
             break;
-        case GLFW_KEY_RIGHT:
+        case GLFW_KEY_LEFT:
             models[cur_idx].cur_eye_offset_idx =
                 (models[cur_idx].cur_eye_offset_idx + models[cur_idx].max_eye_offset - 1) % models[cur_idx].max_eye_offset;
             break;
@@ -1116,7 +1116,7 @@ void LoadTexturedModels(string model_path) // [my] new function
 	printf("Load Models Success ! Shapes size %d Material size %d\n", shapes.size(), materials.size());
 	model tmp_model;
 
-	vector<PhongMaterial> allMaterial;
+	vector<PhongMaterial> allMaterial; // working
 	for (int i = 0; i < materials.size(); i++)
 	{
 		PhongMaterial material;
@@ -1131,20 +1131,20 @@ void LoadTexturedModels(string model_path) // [my] new function
         
         // [my] preprocess eye positions
         if(material.isEye) {
-            const float vertical_unit = (float) 1 / 8;
+            const float vertical_unit = (float) 1 / 4;
             const float horizontal_unit = (float) 1 / 2;
             
             int offs[7][2] = {
                 {0, 0},
-                {0, 1},
-                {0, 2},
-                {0, 3},
+                {0, -1},
+                {0, -2},
+                {0, -3},
                 {1, 0},
-                {1, 1},
-                {1, 2},
+                {1, -1},
+                {1, -2},
             };
             for(int i = 0; i < 7; ++i) {
-                material.offsets.push_back( _Offset( offs[i][0] * vertical_unit, offs[i][1] * horizontal_unit) );
+                material.offsets.push_back( _Offset( offs[i][0] * horizontal_unit, offs[i][1] * vertical_unit) );
             }
             
             tmp_model.hasEye = true;

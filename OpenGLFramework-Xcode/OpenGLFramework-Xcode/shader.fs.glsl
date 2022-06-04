@@ -61,9 +61,10 @@ void main() {
     // calculate light_position, viewing_position
     vec3 light_pos = (v * vec4(position, 1.0)).xyz;
     vec3 view_pos = vec3(0, 0, 0); // because we are in viewing space
+    vec3 model_origin = (mv * vec4(0, 0, 0, 1)).xyz; // origin in model space, but in aspect of viewing space
     
     // calculate light_vector, viewing_vector, halfway_vector
-    vec3 light_vector = (lightMode == 0) ? normalize( light_pos ) : normalize( light_pos - vertex_position ); // if mode == directional, set as light_pos - origin
+    vec3 light_vector = (lightMode == 0) ? normalize( light_pos - model_origin ) : normalize( light_pos - vertex_position ); // if mode == directional, set as light_pos - origin
     vec3 view_vector = normalize( view_pos - vertex_position );
     vec3 halfway_vector = normalize( light_vector + view_vector );
     
