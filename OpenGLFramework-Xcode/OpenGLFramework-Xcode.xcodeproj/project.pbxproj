@@ -12,6 +12,7 @@
 		0141AF3A2420D69500E38EBE /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0141AF352420D69500E38EBE /* main.cpp */; };
 		0141AF3D2420D6AE00E38EBE /* libglfw.3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 0141AF3C2420D6AE00E38EBE /* libglfw.3.dylib */; };
 		0141AF3E2420D6AE00E38EBE /* libglfw.3.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = 0141AF3C2420D6AE00E38EBE /* libglfw.3.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		820CDF56284A59B5009B4153 /* Matrices.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 820CDF53284A59B5009B4153 /* Matrices.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -46,6 +47,10 @@
 		0141AF3C2420D6AE00E38EBE /* libglfw.3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libglfw.3.dylib; path = lib/libglfw.3.dylib; sourceTree = "<group>"; };
 		19CF013A247E403200540B07 /* shader.vs.glsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = shader.vs.glsl; sourceTree = "<group>"; };
 		19CF013B247E403200540B07 /* shader.fs.glsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = shader.fs.glsl; sourceTree = "<group>"; };
+		820CDF52284A59B5009B4153 /* Matrices.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Matrices.h; sourceTree = "<group>"; };
+		820CDF53284A59B5009B4153 /* Matrices.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Matrices.cpp; sourceTree = "<group>"; };
+		820CDF54284A59B5009B4153 /* Vectors.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Vectors.h; sourceTree = "<group>"; };
+		820CDF55284A59B5009B4153 /* tiny_obj_loader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = tiny_obj_loader.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -80,6 +85,10 @@
 		0141AF2A2420D64800E38EBE /* OpenGLFramework-Xcode */ = {
 			isa = PBXGroup;
 			children = (
+				820CDF53284A59B5009B4153 /* Matrices.cpp */,
+				820CDF52284A59B5009B4153 /* Matrices.h */,
+				820CDF55284A59B5009B4153 /* tiny_obj_loader.h */,
+				820CDF54284A59B5009B4153 /* Vectors.h */,
 				19CF013B247E403200540B07 /* shader.fs.glsl */,
 				19CF013A247E403200540B07 /* shader.vs.glsl */,
 				0141AF342420D69500E38EBE /* glad.c */,
@@ -157,6 +166,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0141AF382420D69500E38EBE /* textfile.cpp in Sources */,
+				820CDF56284A59B5009B4153 /* Matrices.cpp in Sources */,
 				0141AF392420D69500E38EBE /* glad.c in Sources */,
 				0141AF3A2420D69500E38EBE /* main.cpp in Sources */,
 			);
