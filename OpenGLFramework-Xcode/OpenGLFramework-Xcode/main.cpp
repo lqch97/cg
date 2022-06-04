@@ -53,10 +53,11 @@ vector<string> filenames; // .obj filename list
 typedef struct _Offset {
 	GLfloat x;
 	GLfloat y;
-	/*struct _Offset(GLfloat _x, GLfloat _y) {
+	_Offset(GLfloat _x, GLfloat _y) {
 		x = _x;
 		y = _y;
-	};*/
+	};
+    
 } Offset;
 
 typedef struct
@@ -95,7 +96,7 @@ struct model
 
 	vector<Shape> shapes;
 
-	bool hasEye;
+	bool hasEye = false;
 	GLint max_eye_offset = 7;
 	GLint cur_eye_offset_idx = 0;
 };
@@ -162,6 +163,7 @@ struct Uniform
     GLint iLocMV;
     GLint iLocV;
     GLint iLocNormTrnas;
+    GLint iLocTexTrans;
     
     // lighting properties (general)
     GLint iLocPosition;
@@ -532,6 +534,19 @@ void RenderScene(int per_vertex_or_per_pixel) {
         
         // texture setting 「my]
         foo(models[cur_idx].shapes[i].material.diffuseTexture);
+        
+        // set texture transformation matrix
+        Matrix4 TEX_TRANS;
+        auto curr_model = models[cur_idx];
+        if(models[cur_idx].shapes[i].material.isEye) {
+            auto offset = curr_model.shapes[i].material.offsets[curr_model.cur_eye_offset_idx];
+            TEX_TRANS = translate(Vector3(offset.x, offset.y, 0));
+        } else {
+            TEX_TRANS = translate(Vector3(0, 0, 0));
+        }
+        GLfloat temp[16];
+        setGLMatrix(temp, TEX_TRANS);
+        glUniformMatrix4fv(uniform.iLocTexTrans, 1, GL_FALSE, temp); // [my]
                             
         // draw left hand side viewport in vertex lighting
         glUniform1i(uniform.iLocShadingMode, 0); // set shading mode, 0 => vertex shading
@@ -633,6 +648,14 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
             break;
         case GLFW_KEY_B:
             min_linear = !min_linear;
+            break;
+        case GLFW_KEY_LEFT:
+            models[cur_idx].cur_eye_offset_idx =
+                (models[cur_idx].cur_eye_offset_idx + 1) % models[cur_idx].max_eye_offset; // [my]
+            break;
+        case GLFW_KEY_RIGHT:
+            models[cur_idx].cur_eye_offset_idx =
+                (models[cur_idx].cur_eye_offset_idx + models[cur_idx].max_eye_offset - 1) % models[cur_idx].max_eye_offset;
             break;
 		default:
 			break;
@@ -1102,11 +1125,35 @@ void LoadTexturedModels(string model_path) // [my] new function
 		material.Ks = Vector3(materials[i].specular[0], materials[i].specular[1], materials[i].specular[2]);
 
 		material.diffuseTexture = LoadTextureImage(base_dir + string(materials[i].diffuse_texname));
+        
+        // [my]
+        material.isEye = (materials[i].diffuse_texname.find("Eye") != string::npos) ? true : false;
+        
+        // [my] preprocess eye positions
+        if(material.isEye) {
+            const float vertical_unit = (float) 1 / 8;
+            const float horizontal_unit = (float) 1 / 2;
+            
+            int offs[7][2] = {
+                {0, 0},
+                {0, 1},
+                {0, 2},
+                {0, 3},
+                {1, 0},
+                {1, 1},
+                {1, 2},
+            };
+            for(int i = 0; i < 7; ++i) {
+                material.offsets.push_back( _Offset( offs[i][0] * vertical_unit, offs[i][1] * horizontal_unit) );
+            }
+            
+            tmp_model.hasEye = true;
+        }
+        
 		if (material.diffuseTexture == -1)
 		{
 			cout << "LoadTexturedModels: Fail to load model's material " << i << endl;
 			system("pause");
-			
 		}
 		
 		allMaterial.push_back(material);
@@ -1191,6 +1238,7 @@ void setUniformVariables()
     uniform.iLocMV = glGetUniformLocation(program, "mv");
     uniform.iLocV = glGetUniformLocation(program, "v");
     uniform.iLocNormTrnas = glGetUniformLocation(program, "normTrans");
+    uniform.iLocTexTrans = glGetUniformLocation(program, "texTrans");
 
     // general lighting properties
     uniform.iLocPosition = glGetUniformLocation(program, "position");

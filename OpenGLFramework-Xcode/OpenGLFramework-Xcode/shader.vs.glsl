@@ -24,6 +24,7 @@ uniform mat4 mvp;
 uniform mat4 mv;
 uniform mat4 v; // viewing matrix
 uniform mat4 normTrans;
+uniform mat4 texTrans;  // for convenience
 
 // lighting properties (general)
 uniform vec3 position;
@@ -54,7 +55,7 @@ uniform float shininess;
 void main()
 {
     // [TODO]
-    texCoord = aTexCoord;
+    texCoord = (texTrans * vec4(aTexCoord, 1.0, 1.0)).xy;
     
     // MVP transformation on positions
     gl_Position = mvp * vec4(aPos, 1.0);
@@ -69,7 +70,6 @@ void main()
         vertex_position = (mv * vec4(aPos, 1.0)).xyz;
         return;
     }
-    
     
     // calculate light_position, viewing_position, vertex_position
     vertex_position = (mv * vec4(aPos, 1.0)).xyz;
