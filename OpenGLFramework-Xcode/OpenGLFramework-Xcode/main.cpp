@@ -1,4 +1,4 @@
-#include <iostream> 
+#include <iostream>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -1326,6 +1326,9 @@ int main(int argc, char **argv)
         return -1;
     }
     glfwMakeContextCurrent(window);
+    
+    // set window size in pixel
+    glfwGetFramebufferSize(window, &screenWidth, &screenHeight);
     
     
     // load OpenGL function pointer
